@@ -769,27 +769,25 @@ public class GameScr extends CScreen {
         }
         menu.addElement(new Command(Language.LEAVEBATTLE(), new IAction() {
             public void perform() {
+                GameScr.this.clearBattleOverlays();
                 if (GameScr.trainingMode) {
                     GameService.gI().training((byte) 1);
                     GameScr.trainingMode = false;
-                    GameScr.this.isShowPausemenu = false;
                     GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                     CScreen.isSetClip = true;
                 } else if (PM.p[GameScr.myIndex].getState() == 5) {
                     CCanvas.startYesNoDlg(Language.youWillLose(), new IAction() {
                         public void perform() {
-                            GameScr.this.exitGiuaChung();
                             CCanvas.endDlg();
-                            GameScr.this.isShowPausemenu = false;
+                            GameScr.this.exitGiuaChung();
                             GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                         }
                     });
                 } else {
                     CCanvas.startYesNoDlg(Language.wantExit(), new IAction() {
                         public void perform() {
-                            GameScr.this.exitGiuaChung();
                             CCanvas.endDlg();
-                            GameScr.this.isShowPausemenu = false;
+                            GameScr.this.exitGiuaChung();
                             GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                         }
                     });
@@ -822,6 +820,7 @@ public class GameScr extends CScreen {
         }
     }
     public void exitGiuaChung() {
+        this.clearBattleOverlays();
         if (pm != null && PM.p != null && PM.p[myIndex] != null) {
             GameService.gI().leaveBoard();
             CCanvas.startWaitDlgWithoutCancel(Language.leaveBattle(), 9);
@@ -1581,9 +1580,25 @@ public class GameScr extends CScreen {
         }
     }
     public void onClearMap() {
+        this.clearBattleOverlays();
         mm.onClearMap();
         sm.onClearMap();
         System.gc();
+    }
+    private void clearBattleOverlays() {
+        this.isShowPausemenu = false;
+        this.isSelectItem = false;
+        this.isAdjustingForce1 = false;
+        this.isAdjustingForce2 = false;
+        this.isPressXL = false;
+        this.isPressXR = false;
+        this.isPressXF = false;
+        if (CCanvas.pausemenu != null) {
+            CCanvas.pausemenu.isShow = false;
+        }
+        if (CCanvas.menu != null) {
+            CCanvas.menu.showMenu = false;
+        }
     }
     public void onPointerPressed(int xScreen, int yScreen, int index) {
         if (!this.isSelectItem && pm != null && pm.isYourTurn()) {
