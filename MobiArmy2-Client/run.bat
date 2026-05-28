@@ -1,0 +1,3 @@
+@echo off
+echo Running desktop module...
+gradle :desktop:run

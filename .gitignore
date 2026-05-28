@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+*/out/
+
+# Binaries
+*.rar
+*.exe
+*.zip
+*.7z
+
+# Logs
+*.log
+
+# RMS
+rms/
+*/rms/
