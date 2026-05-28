@@ -171,7 +171,10 @@ public class ShopItem extends TabScreen {
    }
    public void buyAChooseItem(byte money, byte itemID, byte numBuy) {
       checkTongTien(itemID, numBuy);
-      if (getI(itemID).price * numBuy <= TerrainMidlet.myInfo.xu && getI(itemID).price2 * numBuy <= TerrainMidlet.myInfo.luong) {
+      Item current = getI(itemID);
+      int price = money == 1 ? current.price2 : current.price;
+      int playerMoney = money == 1 ? TerrainMidlet.myInfo.luong : TerrainMidlet.myInfo.xu;
+      if (price != -1 && price * numBuy <= playerMoney) {
          Item var10000 = getCurI();
          var10000.numToBuy += numBuy;
          var10000 = getCurI();

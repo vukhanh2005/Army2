@@ -15,7 +15,7 @@ public class ControlHandler {
     }
     private boolean isValidPassword(String password, String storedPassword) {
         return true;
-    }
+    }   
     public static final HashSet<Integer> syncCommands = new HashSet<>();
     static {
         syncCommands.add(-25);

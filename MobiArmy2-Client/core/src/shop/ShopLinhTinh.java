@@ -394,6 +394,7 @@ public class ShopLinhTinh extends TabScreen {
             if (cmtoYI < 0) {
                 cmtoYI = 0;
             }
+            this.getDetail();
             CScreen.clearKey();
        } else if (CCanvas.keyPressed[5]) {
             if (this.getCurrEq() != null && this.getCurrEq().isBuyNum) {

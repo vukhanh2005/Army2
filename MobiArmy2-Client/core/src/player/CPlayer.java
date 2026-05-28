@@ -134,6 +134,9 @@ public class CPlayer {
     public boolean chophepGuiUpdateXY;
     public boolean isSecondPower = false;
     public boolean isDoublePower = false;
+    public boolean forceSelectedBySlider = false;
+    public byte previewForce = 0;
+    public byte previewForce_2 = 0;
     public byte force = 0;
     public byte force_2 = 0;
     public int maxforce = 30;
@@ -771,7 +774,7 @@ public class CPlayer {
     public void holdFire() {
         CCanvas.keyPressed[12] = false;
         CCanvas.keyPressed[13] = false;
-        if (this.state != 3 && this.force > 1) {
+        if (this.state != 3 && (this.force > 1 || this.forceSelectedBySlider)) {
             this.setState((byte) 3);
             this.bulletType = Bullet.setBulletType(this.gun);
             if (Bullet.isDoubleBull(this.bulletType) && !this.isUsedItem) {
@@ -782,7 +785,38 @@ public class CPlayer {
                 this.isDoublePower = false;
             }
             GameScr.time.stop();
-        } else if (!this.isDoublePower) {
+            return;
+        }
+        if (this.forceSelectedBySlider && this.state == 3) {
+            int targetForce = this.getCurrentPreviewForce(false);
+            int targetForce2 = this.getCurrentPreviewForce(true);
+            if (!this.isDoublePower) {
+                if (this.force < targetForce) {
+                    ++this.force;
+                    return;
+                }
+                this.shoot();
+                GameScr.clearKey();
+                isStopFire = true;
+                return;
+            }
+            if (this.force < targetForce) {
+                ++this.force;
+                this.isSecondPower = false;
+                return;
+            }
+            this.isSecondPower = true;
+            if (this.force_2 < targetForce2) {
+                ++this.force_2;
+                return;
+            }
+            this.shoot();
+            this.isSecondPower = false;
+            GameScr.clearKey();
+            isStopFire = true;
+            return;
+        }
+        if (!this.isDoublePower) {
             ++this.force;
             if (this.force >= this.maxforce) {
                 this.shoot();
@@ -807,6 +841,39 @@ public class CPlayer {
             }
         }
     }
+    public int getCurrentPreviewForce(boolean second) {
+        int max = second ? this.maxforce2 : this.maxforce;
+        int value = second ? this.force_2 : this.force;
+        if (this.forceSelectedBySlider) {
+            int preview = second ? this.previewForce_2 : this.previewForce;
+            if (preview > 0) {
+                value = preview;
+            }
+        }
+        if (value <= 0) {
+            value = second ? this.lastForcePoint_2 : this.lastForcePoint;
+        }
+        if (value <= 0) {
+            value = max;
+        }
+        return Math.max(1, Math.min(value, max));
+    }
+    public void primeForcePreview() {
+        this.bulletType = Bullet.setBulletType(this.gun);
+        if (Bullet.isDoubleBull(this.bulletType) && !this.isUsedItem) {
+            this.isDoublePower = true;
+        } else if (this.is2TurnItem) {
+            this.isDoublePower = Bullet.isDoubleBull(this.bulletType);
+        } else {
+            this.isDoublePower = false;
+        }
+        this.previewForce = (byte) this.getCurrentPreviewForce(false);
+        this.previewForce_2 = (byte) this.getCurrentPreviewForce(true);
+        this.forceSelectedBySlider = GameScr.aimAssistEnabled;
+        this.force = 0;
+        this.force_2 = 0;
+        this.isSecondPower = false;
+    }
     public void fire() {
         if (!this.isDoublePower) {
             if (this.force > 1 && this.state == 3) {
@@ -817,9 +884,17 @@ public class CPlayer {
             } else {
                 this.force = 0;
             }
+            this.forceSelectedBySlider = false;
         } else if (this.state == 3) {
             if (!this.isSecondPower) {
                 this.isSecondPower = true;
+            } else if (this.forceSelectedBySlider) {
+                this.force = (byte) this.getCurrentPreviewForce(false);
+                this.force_2 = (byte) this.getCurrentPreviewForce(true);
+                this.setState((byte) 2);
+                this.shoot();
+                this.isSecondPower = false;
+                GameScr.clearKey();
             } else if (this.force_2 > 1) {
                 this.setState((byte) 2);
                 this.shoot();
@@ -827,10 +902,12 @@ public class CPlayer {
                 GameScr.clearKey();
                 this.force = 0;
                 this.force_2 = 0;
+                this.forceSelectedBySlider = false;
             }
         } else {
             this.force = 0;
             this.force_2 = 0;
+            this.forceSelectedBySlider = false;
         }
     }
     public void shoot() {
@@ -1003,6 +1080,7 @@ public class CPlayer {
         this.lastForcePoint_2 = this.force_2;
         this.force = 0;
         this.force_2 = 0;
+        this.forceSelectedBySlider = false;
     }
     public void UseItem(int itemID, boolean isCOM_Use, int curSlot) {
         CRes.out("======>  isCOM_Use " + isCOM_Use);
@@ -1424,6 +1502,10 @@ public class CPlayer {
         }
     }
     public void move(int directMove) {
+        if (this.forceSelectedBySlider && this.state == 3 && this.force == 0 && this.force_2 == 0) {
+            this.setState((byte) 0);
+            this.isSecondPower = false;
+        }
         if (this.state == 0 || this.state == 2 || this.state == 8) {
             this.setState((byte) 1);
             this.curFrame = 4;
@@ -1923,6 +2005,8 @@ public class CPlayer {
                 if (this.isHoldFire) {
                     this.fire();
                     this.isHoldFire = false;
+                } else if (this.forceSelectedBySlider) {
+                    this.setState((byte) 3);
                 } else {
                     this.setState((byte) 0);
                 }
@@ -1931,6 +2015,19 @@ public class CPlayer {
     }
     public void drawKegoc(mGraphics g) {
         int w = 24, h = 24, lent;
+        int originalMaxforce = this.maxforce;
+        int originalMaxforce2 = this.maxforce2;
+        if (this.forceSelectedBySlider) {
+            this.maxforce = this.getCurrentPreviewForce(false);
+            this.maxforce2 = this.getCurrentPreviewForce(true);
+        } else if (this.state == 3) {
+            if (this.force > 0) {
+                this.maxforce = this.force;
+            }
+            if (this.force_2 > 0) {
+                this.maxforce2 = this.force_2;
+            }
+        }
         int x = this.x + ((w - 4) * cos(this.angle) >> 10);
         int y = this.y -(h / 2) - ((h - 4) * sin(this.angle) >> 10);
         int vx = this.maxforce * cos(this.angle) >> 10;
@@ -2083,6 +2180,8 @@ public class CPlayer {
                 }
                 break;
         }
+        this.maxforce = originalMaxforce;
+        this.maxforce2 = originalMaxforce2;
     }
     private void drawBullet(mGraphics g, int bulletId, int x, int y, int vx, int vy, int ax100, int ay100, int g100) {
         int vyTemp2 = 0;
@@ -2147,7 +2246,7 @@ public class CPlayer {
                     if(addTZ) {
                         vx += 1;
                     } else {
-                        vx -=1;
+                        vx -= 1;
                     }
                     quayLai = 1;
                 } else if(quayLai == 1) {
@@ -2156,8 +2255,8 @@ public class CPlayer {
                     } else {
                         vx -= 2;
                     }
-                } else if(vy > 0) {
-                    quayLai = (byte) (quayLai + 1);
+                } else if(vy > 0 || frame > 40) {
+                    quayLai = 0;
                 }
             }
             if(vy >= 0 && bulletId == 49) {

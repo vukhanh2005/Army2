@@ -352,6 +352,7 @@ public class ShopEquipment extends TabScreen {
             if (cmtoYI < 0) {
                 cmtoYI = 0;
             }
+            this.getDetail();
             CScreen.clearKey();
        }
    }

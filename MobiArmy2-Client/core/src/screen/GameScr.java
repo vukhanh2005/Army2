@@ -144,6 +144,13 @@ public class GameScr extends CScreen {
     boolean isMoneyFly;
     int nBoLuot;
     private boolean isSelectItem;
+    private boolean isAdjustingForce1;
+    private boolean isAdjustingForce2;
+    public static final int FORCE_SLIDER_WIDTH = 200;
+    public static final int FORCE_SLIDER_HEIGHT = 10;
+    public static final int FORCE_SLIDER_SPACING = 16;
+    public static final int FORCE_SLIDER_TOP = 60;
+    public static boolean aimAssistEnabled = true;
     public static int curItemSelec;
     private long timeDelayClosePauseMenu;
     public static byte myIndex;
@@ -558,7 +565,7 @@ public class GameScr extends CScreen {
             return;
         }
         CPlayer player = PM.getMyPlayer();
-        if (!player.active || player.falling || player.getState() == 5) {
+        if (player.falling || player.getState() == 5) {
             return;
         }
         if (!CCanvas.keyHold[4] && !CCanvas.keyHold[6]) {
@@ -708,6 +715,13 @@ public class GameScr extends CScreen {
         menu.addElement(new Command("LỰC MAX", new IAction() {
             public void perform() {
                 doSetForce();
+            }
+        }));
+        menu.addElement(new Command(aimAssistEnabled ? "TẮT CĂN GÓC" : "BẬT CĂN GÓC", new IAction() {
+            public void perform() {
+                GameScr.this.toggleAimAssist();
+                GameScr.this.isShowPausemenu = false;
+                GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
             }
         }));
         if (pm.isYourTurn()) {
@@ -1224,7 +1238,9 @@ public class GameScr extends CScreen {
                 }
                 onDrawAngleBar(g, Camera.x + (w >> 1), Camera.y + h - 25 + 8, PM.getMyPlayer().angle);
             }
-            PM.getMyPlayer().drawKegoc(g);
+            if (aimAssistEnabled) {
+                PM.getMyPlayer().drawKegoc(g);
+            }
         }
         if (!pm.isYourTurn()) {
             g.translate(-g.getTranslateX(), -g.getTranslateY());
@@ -1254,6 +1270,7 @@ public class GameScr extends CScreen {
             }
         }
         this.drawWind(g);
+        this.drawForceSliders(g);
         if (Camera.mode == 0) {
             this.drawWhenFreeCam(g);
         }
@@ -1460,6 +1477,101 @@ public class GameScr extends CScreen {
             Font.borderFont.drawString(g, chat, 3 + xChat, CCanvas.hieght - 14, 0);
         }
     }
+    private int getForceSliderX() {
+        return CCanvas.hw - FORCE_SLIDER_WIDTH / 2;
+    }
+    private int getForceSliderY(boolean second) {
+        int y = FORCE_SLIDER_TOP;
+        return second ? y + FORCE_SLIDER_HEIGHT + FORCE_SLIDER_SPACING : y;
+    }
+    private void toggleAimAssist() {
+        aimAssistEnabled = !aimAssistEnabled;
+        CPlayer player = PM.getMyPlayer();
+        if (player != null) {
+            if (aimAssistEnabled) {
+                player.primeForcePreview();
+            } else {
+                player.forceSelectedBySlider = false;
+                player.force = 0;
+                player.force_2 = 0;
+                player.isSecondPower = false;
+            }
+        }
+    }
+    private boolean isPointOnForceSlider(int x, int y, boolean second) {
+        if (!aimAssistEnabled) {
+            return false;
+        }
+        CPlayer player = PM.getMyPlayer();
+        if (second && (player == null || !player.isDoublePower)) {
+            return false;
+        }
+        int sx = this.getForceSliderX();
+        int sy = this.getForceSliderY(second);
+        return x >= sx && x <= sx + FORCE_SLIDER_WIDTH && y >= sy && y <= sy + FORCE_SLIDER_HEIGHT;
+    }
+    private void updateForceFromSlider(int xScreen, boolean second) {
+        CPlayer player = PM.getMyPlayer();
+        if (player == null) {
+            return;
+        }
+        if (player.getState() != 3) {
+            player.setState((byte)3);
+            player.bulletType = Bullet.setBulletType(player.gun);
+            if (Bullet.isDoubleBull(player.bulletType) && !player.isUsedItem) {
+                player.isDoublePower = true;
+            } else if (player.is2TurnItem) {
+                player.isDoublePower = Bullet.isDoubleBull(player.bulletType);
+            } else {
+                player.isDoublePower = false;
+            }
+            GameScr.time.stop();
+        }
+        int sx = this.getForceSliderX();
+        int value = (xScreen - sx) * (second ? player.maxforce2 : player.maxforce) / FORCE_SLIDER_WIDTH;
+        value = Math.max(1, Math.min(value, second ? player.maxforce2 : player.maxforce));
+        if (player.force == 0 && player.force_2 == 0) {
+            player.isSecondPower = false;
+        }
+        if (second) {
+            player.previewForce_2 = (byte)value;
+        } else {
+            player.previewForce = (byte)value;
+        }
+        player.forceSelectedBySlider = true;
+    }
+    private void drawForceSliders(mGraphics g) {
+        CPlayer player = PM.getMyPlayer();
+        if (!aimAssistEnabled || player == null || !pm.isYourTurn()) {
+            return;
+        }
+        int x = this.getForceSliderX();
+        int y1 = this.getForceSliderY(false);
+        int y2 = this.getForceSliderY(true);
+        int currentForce1 = player.getCurrentPreviewForce(false);
+        int currentForce2 = player.getCurrentPreviewForce(true);
+        int p1 = Math.max(0, Math.min(currentForce1, player.maxforce));
+        int p2 = Math.max(0, Math.min(currentForce2, player.maxforce2));
+        g.setColor(3355443);
+        g.fillRect(x, y1, FORCE_SLIDER_WIDTH, FORCE_SLIDER_HEIGHT, false);
+        if (player.isDoublePower) {
+            g.fillRect(x, y2, FORCE_SLIDER_WIDTH, FORCE_SLIDER_HEIGHT, false);
+        }
+        g.setColor(16711680);
+        if (player.maxforce > 0) {
+            g.fillRect(x, y1, p1 * FORCE_SLIDER_WIDTH / player.maxforce, FORCE_SLIDER_HEIGHT, false);
+        }
+        if (player.isDoublePower && player.maxforce2 > 0) {
+            g.fillRect(x, y2, p2 * FORCE_SLIDER_WIDTH / player.maxforce2, FORCE_SLIDER_HEIGHT, false);
+        }
+        g.setColor(player.isDoublePower ? 16777215 : 8421504);
+        g.drawRect(x, y1, FORCE_SLIDER_WIDTH, FORCE_SLIDER_HEIGHT, false);
+        Font.normalFont.drawString(g, "Lực 1", x - 28, y1 + FORCE_SLIDER_HEIGHT / 2, mGraphics.VCENTER);
+        if (player.isDoublePower) {
+            g.drawRect(x, y2, FORCE_SLIDER_WIDTH, FORCE_SLIDER_HEIGHT, false);
+            Font.normalFont.drawString(g, "Lực 2", x - 28, y2 + FORCE_SLIDER_HEIGHT / 2, mGraphics.VCENTER);
+        }
+    }
     public void showChat(int fromID, String text, int Interval) {
         ChatPopup cp = new ChatPopup();
         CPlayer _player = pm.getPlayerFromID(fromID);
@@ -1474,11 +1586,25 @@ public class GameScr extends CScreen {
         System.gc();
     }
     public void onPointerPressed(int xScreen, int yScreen, int index) {
+        if (!this.isSelectItem && pm != null && pm.isYourTurn()) {
+            if (this.isPointOnForceSlider(xScreen, yScreen, false)) {
+                this.isAdjustingForce1 = true;
+                this.updateForceFromSlider(xScreen, false);
+                return;
+            }
+            if (this.isPointOnForceSlider(xScreen, yScreen, true)) {
+                this.isAdjustingForce2 = true;
+                this.updateForceFromSlider(xScreen, true);
+                return;
+            }
+        }
         if (Camera.mode == 0) {
             this.aimInFreeCamera(xScreen, yScreen);
         }
-        if (Camera.mode == 1 && !isBattleUiPointer(xScreen, yScreen) && mSystem.currentTimeMillis() - this.timeDelayClosePauseMenu > 550L) {
-            pm.onPointerPressed(xScreen, yScreen, index);
+        if (!this.isSelectItem && Camera.mode == 1 && pm != null && pm.isYourTurn()) {
+            if (!isBattleUiPointer(xScreen, yScreen) && mSystem.currentTimeMillis() - this.timeDelayClosePauseMenu > 550L) {
+                pm.onPointerPressed(xScreen, yScreen, index);
+            }
         }
         if (CCanvas.keyPressed[5]) {
             if (GameScr.pm != null && GameScr.pm.isYourTurn()) {
@@ -1489,6 +1615,9 @@ public class GameScr extends CScreen {
         super.onPointerPressed(xScreen, yScreen, index);
     }
     public void onPointerHold(int xScreen, int yScreen, int index) {
+        if (this.isAdjustingForce1 || this.isAdjustingForce2) {
+            return;
+        }
         if (!this.isSelectItem) {
             if (!this.isShowPausemenu) {
                 if (mSystem.currentTimeMillis() - this.timeDelayClosePauseMenu >= 300L) {
@@ -1520,6 +1649,10 @@ public class GameScr extends CScreen {
         }
     }
     public void onPointerDragged(int xScreen, int yScreen, int index) {
+        if (this.isAdjustingForce1 || this.isAdjustingForce2) {
+            this.updateForceFromSlider(xScreen, this.isAdjustingForce2);
+            return;
+        }
         if (!this.isSelectItem) {
             if (!this.isShowPausemenu) {
                 if (mSystem.currentTimeMillis() - this.timeDelayClosePauseMenu >= 300L) {
@@ -1552,7 +1685,13 @@ public class GameScr extends CScreen {
         }
     }
     public void onPointerReleased(int x, int y2, int index) {
+        boolean wasAdjustingForce = this.isAdjustingForce1 || this.isAdjustingForce2;
+        this.isAdjustingForce1 = false;
+        this.isAdjustingForce2 = false;
         this.isPressXL = this.isPressXR = this.isPressXF = false;
+        if (wasAdjustingForce) {
+            return;
+        }
         if (Camera.mode == 0 && !isBattleUiPointer(x, y2)) {
             this.aimInFreeCamera(x, y2);
         }

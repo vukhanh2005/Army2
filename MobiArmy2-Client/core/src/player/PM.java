@@ -300,6 +300,7 @@ public class PM {
                     GameScr.cantSee = false;
                 }
                 CPlayer.isShooting = false;
+                p[curP].primeForcePreview();
             }
             if (GameScr.cam != null) {
                 GameScr.cam.setPlayerMode(whoNext);

@@ -899,29 +899,9 @@ public class MessageHandler implements IMessageHandler {
                     }
                     case 75: {
                         byte mID = msg.reader().readByte();
-                        if (CCanvas.curScr != CCanvas.luckyGifrScreen) {
-                            CCanvas.curScr = CCanvas.prepareScr;
-                            CCanvas.prepareScr.resetReady();
-                            CCanvas.prepareScr.show();
-                            PrepareScr.curMap = mID;
-                            if (mID != 27 && mID != 100) {
-                                try {
-                                    CCanvas.startWaitDlgWithoutCancel(Language.pleaseWait(), 3);
-                                    if (MM.maps != null) {
-                                        MM.maps.removeAllElements();
-                                    }
-                                    GameScr.mm.createMap(mID);
-                                    CCanvas.endDlg();
-                                } catch (Exception ex) {
-                                    CCanvas.endDlg();
-                                }
-                            }
-                            if (!CRes.isNullOrEmpty(GameScr.res)) {
-                                GameService.gI().luckGift((byte) -3);
-                            }
-                            System.gc();
-                            break;
-                        }
+                        CCanvas.curScr = CCanvas.prepareScr;
+                        CCanvas.prepareScr.resetReady();
+                        CCanvas.prepareScr.show();
                         PrepareScr.curMap = mID;
                         if (mID != 27 && mID != 100) {
                             try {
@@ -938,6 +918,7 @@ public class MessageHandler implements IMessageHandler {
                         if (!CRes.isNullOrEmpty(GameScr.res)) {
                             GameService.gI().luckGift((byte) -3);
                         }
+                        System.gc();
                         break;
                     }
                     case 64: {
