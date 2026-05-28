@@ -673,8 +673,15 @@ public class PrepareScr extends CScreen {
     }
     protected void doLeaveBoard() {
         GameService.gI().leaveBoard();
+        if (CCanvas.menu != null) {
+            CCanvas.menu.showMenu = false;
+        }
+        if (CCanvas.pausemenu != null) {
+            CCanvas.pausemenu.isShow = false;
+        }
+        CScreen.clearKey();
         if (BoardListScr.boardList == null) {
-            CCanvas.menuScr.show();
+            CCanvas.menuScr.showMainMenu(false);
         } else {
             CCanvas.boardListScr.show();
         }

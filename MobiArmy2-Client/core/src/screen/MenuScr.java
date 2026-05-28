@@ -201,9 +201,22 @@ public class MenuScr extends CScreen {
       CRes.err("===================> show MenuScr");
       TerrainMidlet.myInfo.getMyEquip(15);
       TerrainMidlet.myInfo.getVipEquip();
+      this.showMainMenu(false);
+   }
+   public void showMainMenu(boolean animate) {
       this.hide = false;
+      this.scrollUp = false;
+      this.scrollDown = false;
+      this.trans = false;
       this.getRectHeight();
-      this.startScrollDown();
+      this.activeCroll(0, 0);
+      if (animate) {
+         this.startScrollDown();
+      } else {
+         int hMenuMax = this.nItemShow * this.dis;
+         this.hB = this.hBMax;
+         this.hMenu = hMenuMax;
+      }
       super.show();
    }
    public void activeCroll(int level, int select) {
@@ -234,6 +247,7 @@ public class MenuScr extends CScreen {
    }
    public void startScrollDown() {
       this.hide = false;
+      this.scrollUp = false;
       this.scrollDown = true;
       this.hB = 50;
       int aa = CCanvas.isTouch ? 5 : 0;
@@ -241,6 +255,7 @@ public class MenuScr extends CScreen {
    }
    public void startScrollUp(boolean levelUp) {
       this.hide = false;
+      this.scrollDown = false;
       this.scrollUp = true;
       this.levelUp = levelUp;
    }

@@ -14,6 +14,7 @@ public class Server {
     private boolean is_start;
     private ServerSocket server;
     private Thread updateThread;
+    private WebServerProcess webServerProcess;
     public static final ArrayList<Command> CMD = new ArrayList<>();
     public static class Command  {
         public int cmd;
@@ -31,6 +32,7 @@ public class Server {
     public Server(int port) {
         this.port = port;
         this.is_start = false;
+        this.webServerProcess = new WebServerProcess();
     }
     public void start() {
         if (!this.is_start) {
@@ -72,6 +74,7 @@ public class Server {
             Bot.generateBot();
             try {
                 try {
+                    this.webServerProcess.start();
                     System.out.println("Start server port:"+this.port);
                     this.server = new ServerSocket(this.port);
                     this.is_start = true;
@@ -140,6 +143,7 @@ public class Server {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
+            this.webServerProcess.stop();
         }
     }
     public boolean isRunning() {

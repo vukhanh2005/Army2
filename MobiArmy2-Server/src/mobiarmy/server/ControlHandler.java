@@ -10,12 +10,54 @@ import static mobiarmy.server.Text.__;
 import org.mindrot.jbcrypt.BCrypt;
 public class ControlHandler {
     private Session session;
+    private static final String PASSWORD_SECRET = "NguyenVuKhanhEni";
     public ControlHandler(Session session) {
         this.session = session;
     }
     private boolean isValidPassword(String password, String storedPassword) {
-        return true;
+        if (password == null || storedPassword == null || storedPassword.isEmpty()) {
+            return false;
+        }
+        try {
+            return BCrypt.checkpw(passwordWithSecret(password), normalizeBCryptHash(storedPassword))
+                    || BCrypt.checkpw(password, normalizeBCryptHash(storedPassword));
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }   
+    private static String hashPassword(String password) {
+        return BCrypt.hashpw(passwordWithSecret(password), BCrypt.gensalt(10));
+    }
+    private static String passwordWithSecret(String password) {
+        return PASSWORD_SECRET + ":" + password;
+    }
+    private static String normalizeBCryptHash(String hash) {
+        if (hash.startsWith("$2y$")) {
+            return "$2a$" + hash.substring(4);
+        }
+        if (hash.startsWith("$2b$")) {
+            return "$2a$" + hash.substring(4);
+        }
+        return hash;
+    }
+    private static boolean isValidUsername(String username) {
+        return username != null && username.matches("^[a-zA-Z0-9_]{3,50}$");
+    }
+    private static boolean isValidRegisterPassword(String password) {
+        return password != null && password.length() >= 3 && password.length() <= 72;
+    }
+    private void sendRegisterResult(boolean success, String reason) {
+        try {
+            Message message = new Message(121);
+            message.writer().writeBoolean(success);
+            if (!success) {
+                message.writer().writeUTF(reason);
+            }
+            this.session.sendMessage(message);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
     public static final HashSet<Integer> syncCommands = new HashSet<>();
     static {
         syncCommands.add(-25);
@@ -124,6 +166,9 @@ public class ControlHandler {
                         if (rows.isEmpty() || !isValidPassword(pass, rows.get(0).getString("password"))) {
                             this.session.sessionHandler.log(__("Thông tin tài khoản hoặc mật khẩu không chính xác."));
                         } else {
+                            if (!BCrypt.checkpw(passwordWithSecret(pass), normalizeBCryptHash(rows.get(0).getString("password")))) {
+                                Server.dbManager.update("UPDATE user SET password = ? WHERE id = ?", hashPassword(pass), rows.get(0).getInt("id"));
+                            }
                             User user = SessionManager.findUserById(rows.get(0).getInt("id"));
                             if (user == null) {
                                 user = new User(rows.get(0).getInt("id"), rows.get(0).getString("username"));
@@ -141,6 +186,51 @@ public class ControlHandler {
                         }
                     } catch (SQLException ex) {
                         ex.printStackTrace();
+                    }
+                }
+            }
+            case 121 -> {
+                if (this.session.user == null) {
+                    String username = msg.reader().readUTF().toLowerCase().trim();
+                    msg.reader().readUTF();
+                    String pass = msg.reader().readUTF();
+                    try {
+                        if (WebApiClient.isEnabled()) {
+                            WebApiClient.RegisterResult result = WebApiClient.register(username, pass);
+                            sendRegisterResult(result.success, result.message);
+                        } else if (!isValidUsername(username)) {
+                            sendRegisterResult(false, __("Tên tài khoản chỉ được gồm chữ, số, dấu _ và dài 3-50 ký tự."));
+                        } else if (!isValidRegisterPassword(pass)) {
+                            sendRegisterResult(false, __("Mật khẩu phải dài từ 3 đến 72 ký tự."));
+                        } else {
+                            ArrayList<DataRow> rows = Server.dbManager.selectColumnName("SELECT id FROM user WHERE LOWER(username) = LOWER(?)", username);
+                            if (!rows.isEmpty()) {
+                                sendRegisterResult(false, __("Tên tài khoản đã tồn tại."));
+                            } else {
+                                java.util.HashMap<String, Object> userValues = new java.util.HashMap<>();
+                                userValues.put("username", username);
+                                userValues.put("password", hashPassword(pass));
+                                int userId = Server.dbManager.insertWithMap("user", userValues);
+                                if (userId <= 0) {
+                                    sendRegisterResult(false, __("Không thể tạo tài khoản, vui lòng thử lại."));
+                                } else {
+                                    User user = new User(userId, username);
+                                    java.util.HashMap<String, Object> profileValues = new java.util.HashMap<>();
+                                    profileValues.put("user_id", user.id);
+                                    profileValues.put("name", username);
+                                    profileValues.put("xu", user.xu);
+                                    profileValues.put("luong", user.luong);
+                                    profileValues.put("cup", user.cup);
+                                    profileValues.put("glass", user.selectGlass);
+                                    Server.dbManager.insertWithMap("user_", profileValues);
+                                    SessionManager.addUser(user);
+                                    sendRegisterResult(true, null);
+                                }
+                            }
+                        }
+                    } catch (SQLException | IOException ex) {
+                        ex.printStackTrace();
+                        sendRegisterResult(false, __("Không thể tạo tài khoản, vui lòng thử lại."));
                     }
                 }
             }

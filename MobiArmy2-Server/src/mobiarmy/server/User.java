@@ -308,6 +308,7 @@ public class User {
                     this.addXu(-equip.xu, true);
                 }
                 equip = equip.deepCopy();
+                equip.date = ShopEquipment.SHOP_EQUIP_DATE;
                 equip.renewalDate = System.currentTimeMillis();
                 this.addEquip(equip);
                 this.session.sessionHandler.log(__("Giao dịch thành công. Xin cảm ơn."));

@@ -1453,6 +1453,7 @@ CREATE TABLE `user_equip` (
   `slot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`slot`)),
   `dbKey` int(11) NOT NULL,
   `isUse` tinyint(1) NOT NULL,
+  `date` tinyint(4) NOT NULL DEFAULT 30,
   `renewalDate` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 INSERT INTO `user_equip` (`user_id`, `glassID`, `equipID`, `level2`, `inv_ability`, `inv_percen`, `slot`, `dbKey`, `isUse`, `renewalDate`) VALUES

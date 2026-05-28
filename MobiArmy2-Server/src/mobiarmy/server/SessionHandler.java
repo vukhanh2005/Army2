@@ -383,7 +383,7 @@ public class SessionHandler {
                 message.writer().writeUTF(equip.name);
                 message.writer().writeInt(equip.xu);
                 message.writer().writeInt(equip.luong);
-                message.writer().writeByte(equip.date());
+                message.writer().writeByte(equip.date);
                 message.writer().writeByte(equip.level);
             }
             this.session.sendMessage(message);

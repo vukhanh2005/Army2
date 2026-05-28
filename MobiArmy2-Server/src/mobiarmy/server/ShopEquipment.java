@@ -3,6 +3,7 @@ import com.google.gson.Gson;
 import java.sql.SQLException;
 import java.util.ArrayList;
 public class ShopEquipment {
+    public static final byte SHOP_EQUIP_DATE = 30;
     public static Equip entrys[];
     public static void loadShopEquipment() throws SQLException {
         ArrayList<DBManager.DataRow> rows = Server.dbManager.selectColumnName("SELECT * FROM shop_equipment");
@@ -14,6 +15,7 @@ public class ShopEquipment {
             entrys[i].luong = rows.get(i).getInt("luong");
             entrys[i].inv_ability = new Gson().fromJson(rows.get(i).getString("inv_ability"), byte[].class);
             entrys[i].inv_percen = new Gson().fromJson(rows.get(i).getString("inv_percen"), byte[].class);
+            entrys[i].date = SHOP_EQUIP_DATE;
         }
     }
     public static ArrayList<Equip> generate(byte glassID) {

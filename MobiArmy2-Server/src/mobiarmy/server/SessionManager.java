@@ -74,6 +74,7 @@ public class SessionManager {
         return users_name.size();
     }
     public static void loadUser() throws SQLException {
+        ensureUserEquipDateColumn();
         ArrayList<DBManager.DataRow> dbusers = Server.dbManager.selectColumnName("SELECT * FROM user");
         for (DBManager.DataRow dbuser : dbusers) {
             ArrayList<DBManager.DataRow> user_ = Server.dbManager.selectColumnName("SELECT * FROM user_ WHERE user_id = ?", dbuser.getInt("id"));
@@ -123,6 +124,7 @@ public class SessionManager {
                     equip.slot = new Gson().fromJson(row.getString("slot"), short[].class);
                     equip.dbKey = row.getInt("dbKey");
                     equip.isUse = row.getBoolean("isUse");
+                    equip.date = row.containsKey("date") ? row.getByte("date") : ShopEquipment.SHOP_EQUIP_DATE;
                     equip.renewalDate = row.getLong("renewalDate");
                     user.equips.add(equip);
                 }
@@ -208,6 +210,7 @@ public class SessionManager {
                 equipValues.put("slot", new Gson().toJson(equip.slot));
                 equipValues.put("dbKey", equip.dbKey);
                 equipValues.put("isUse", equip.isUse);
+                equipValues.put("date", equip.date > 0 ? equip.date : ShopEquipment.SHOP_EQUIP_DATE);
                 equipValues.put("renewalDate", equip.renewalDate);
                 Server.dbManager.insertWithMap("user_equip", equipValues);
             }
@@ -235,6 +238,12 @@ public class SessionManager {
                 Server.dbManager.insertWithMap("user_friend", friendValues);
             }
             SessionManager.removeUserById(user.id);
+        }
+    }
+    private static void ensureUserEquipDateColumn() throws SQLException {
+        ArrayList<DBManager.DataRow> rows = Server.dbManager.selectColumnName("SHOW COLUMNS FROM user_equip LIKE 'date'");
+        if (rows.isEmpty()) {
+            Server.dbManager.update("ALTER TABLE user_equip ADD COLUMN `date` tinyint(4) NOT NULL DEFAULT 30 AFTER `isUse`");
         }
     }
     public static void messageWorld(String str) {

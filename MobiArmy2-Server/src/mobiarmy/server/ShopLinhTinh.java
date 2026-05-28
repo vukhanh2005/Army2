@@ -2,6 +2,7 @@ package mobiarmy.server;
 import java.sql.SQLException;
 import java.util.ArrayList;
 public class ShopLinhTinh {
+    public static final byte SHOP_LINH_TINH_DATE = 30;
     public static LinhTinh entrys[];
     public static void loadShopLinhTinh() throws SQLException {
         ArrayList<DBManager.DataRow> rows = Server.dbManager.selectColumnName("SELECT * FROM shop_linhtinh");
@@ -9,6 +10,7 @@ public class ShopLinhTinh {
         for (int i = 0; i < rows.size(); i++) {
             entrys[i] = LinhTinh.get(rows.get(i).getByte("id")).deepCopy();
             entrys[i].isSelectNum = rows.get(i).getBoolean("isSelectNum");
+            entrys[i].date = SHOP_LINH_TINH_DATE;
         }
     }
     public static LinhTinh get(int id) {
