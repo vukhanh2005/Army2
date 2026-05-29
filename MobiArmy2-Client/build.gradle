@@ -34,6 +34,13 @@ allprojects {
         maven { url "https://jitpack.io" }
     }
 }
+project(":core") {
+    apply plugin: "java-library"
+    dependencies {
+        api "com.badlogicgames.gdx:gdx:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+    }
+}
 project(":desktop") {
     apply plugin: "java-library"
     dependencies {
@@ -72,10 +79,25 @@ project(":ios") {
         api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-ios"
     }
 }
-project(":core") {
-    apply plugin: "java-library"
-    dependencies {
-        api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+tasks.register('syncClientRes') {
+    def sourceRes = file("$rootDir/desktop/assets/res")
+    def androidRes = file("$rootDir/android/assets/res")
+    inputs.dir(sourceRes)
+    outputs.dir(androidRes)
+    doLast {
+        copy {
+            from sourceRes
+            into androidRes
+            includeEmptyDirs = true
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    project(":android").tasks.matching { it.name == "preBuild" }.configureEach {
+        dependsOn rootProject.tasks.named("syncClientRes")
+    }
+    project(":desktop").tasks.matching { it.name == "processResources" }.configureEach {
+        dependsOn rootProject.tasks.named("syncClientRes")
     }
 }

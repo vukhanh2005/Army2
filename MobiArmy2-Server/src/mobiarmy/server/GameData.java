@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.zip.CRC32;
 import javax.imageio.ImageIO;
 public class GameData {
     public static Pack mapIcon;
@@ -63,10 +64,42 @@ public class GameData {
         }
     }
     public static void loadLayer() throws IOException {
-        File[] files = new File("res/player").listFiles();
         player = new Pack();
+        File[] files = new File("res/player").listFiles();
         for (File file : files) {
-            player.addEntry(file.getName(), readFile(file));
+            if (file.isFile()) {
+                player.addEntry(file.getName(), readFile(file));
+            }
+        }
+    }
+    public static int resourceVersion(String... paths) {
+        CRC32 crc = new CRC32();
+        for (String path : paths) {
+            updateResourceVersion(crc, new File(path));
+        }
+        return (int) (crc.getValue() % 127) + 1;
+    }
+    private static void updateResourceVersion(CRC32 crc, File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files == null) {
+                return;
+            }
+            for (File child : files) {
+                updateResourceVersion(crc, child);
+            }
+            return;
+        }
+        String name = file.getPath();
+        for (int i = 0; i < name.length(); i++) {
+            crc.update(name.charAt(i));
+        }
+        long value = file.length() ^ file.lastModified();
+        for (int i = 0; i < 8; i++) {
+            crc.update((int) (value >> (i * 8)) & 0xff);
         }
     }
     private static byte[] readFile(File file) throws IOException {

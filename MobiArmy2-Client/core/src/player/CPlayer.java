@@ -1173,12 +1173,19 @@ public class CPlayer {
                     new Explosion(this.x, this.y, (byte) 4, this.index, (byte) itemID);
                     break;
                 case 100:
+                    this.isUsedItem = true;
+                    this.is2TurnItem = true;
+                    this.isSecondPower = false;
+                    this.isDoublePower = Bullet.isDoubleBull(Bullet.setBulletType(this.gun));
+                    this.forceSelectedBySlider = GameScr.aimAssistEnabled;
+                    this.isPaint = true;
                     new Explosion(this.x, this.y - 12, (byte) 5, this.index, (byte) 38);
             }
             this.itemUsed = itemID;
             this.setState((byte) 0);
+            this.checkAngleForSprite();
             if (!this.isInvisible) {
-                new Explosion(this.x, this.y - 12, (byte) 3, this.index, (byte) itemID);
+                new Explosion(this.x, this.y - 12, (byte) 3, this.index, (byte) (itemID == 100 ? 38 : itemID));
             }
             if (this.index == GameScr.myIndex && itemID != 100) {
                 --ShopItem.getI(itemID).num;
@@ -1304,7 +1311,7 @@ public class CPlayer {
                                 if (this.gun != 23 && this.gun != 24) {
                                     if (PrepareScr.currLevel != 7 || PrepareScr.currLevel == 7 && this.state != 5 && this.hp != 0) {
                                         if (this.equip != null) {
-                                            this.equip.paint(g, Look, this.curFrame, this.x, this.y);
+                                            this.equip.paint(g, Look, this.curFrame, this.x, this.y, this.gun);
                                         } else {
                                             this.pFrameImg.drawFrame(this.curFrame, this.x, this.y, Look, 33, g);
                                         }
@@ -1814,7 +1821,7 @@ public class CPlayer {
             paintGhost(g, 1, X, Y);
         } else {
             if (pEquip != null) {
-                pEquip.paint(g, Look, FRAME, X, Y);
+                pEquip.paint(g, Look, FRAME, X, Y, GunType);
             } else {
                 g.drawRegion(pImg[GunType], 0, FRAME * frameH, pImg[GunType].image.getWidth(), frameH, Look, X, Y, mGraphics.BOTTOM | mGraphics.HCENTER, false);
             }
@@ -2193,15 +2200,20 @@ public class CPlayer {
         int yold = y;
         byte quayLai = -1;
         boolean addTZ = (vx <= 0);
+        boolean isFalling = vy >= 0;
         for (int frame = 0; frame < 1000; frame++, xold = x, yold = y) {
             if((x < -100) || (x > MM.mapWidth + 100) || (y > MM.mapHeight + 100)) {
                 return;
+            }
+            if (!isFalling && vy >= 0) {
+                isFalling = true;
+                g.setColor(0xff0000);
             }
             g.drawLine(x, y, x = xold + vx, y = yold + vy ,true);
             if ((bulletId == 19 || bulletId == 17) && frame < 30) {
                 g.setColor(0xff0000);
                 Font.normalGFont.drawString(g, String.valueOf(frame + 1), x, y + 5, 65);
-                g.setColor(0x00ff);
+                g.setColor(isFalling ? 0xff0000 : 0x00ff);
             }
             vxTemp  += Math.abs(ax100);
             vyTemp  += Math.abs(ay100);

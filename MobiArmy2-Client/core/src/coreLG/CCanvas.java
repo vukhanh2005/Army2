@@ -453,6 +453,12 @@ public class CCanvas extends MotherCanvas implements IActionListener {
             MM.fullData = loadData("tiledata2");
         }
         CPlayer.fileData = loadData("playerdata2");
+        if (!isLegacyPlayerPack(CPlayer.fileData)) {
+            CRes.out("Invalid cached playerdata2, reloading legacy player sprites.");
+            CPlayer.fileData = null;
+            playerVersion = 0;
+            saveVersion("playerVersion2", (byte) 0);
+        }
         if (CPlayer.fileData != null) {
             CPlayer.init();
         }
@@ -654,6 +660,74 @@ public class CCanvas extends MotherCanvas implements IActionListener {
     }
     public static int loadVersion(String name) {
         return CRes.loadRMSInt(name);
+    }
+    private static boolean isLegacyPlayerPack(byte[] data) {
+        if (data == null || data.length == 0) {
+            return true;
+        }
+        byte[] key = new byte[]{78, 103, 117, 121, 101, 110, 86, 97, 110, 77, 105, 110, 104};
+        try {
+            int pos = 0;
+            int count = data[pos++] & 255;
+            if (count <= 0 || count >= 255) {
+                return false;
+            }
+            String[] names = new String[count];
+            int[] offsets = new int[count];
+            int[] lengths = new int[count];
+            int dataOffset = 0;
+            for (int i = 0; i < count; i++) {
+                int nameLength = data[pos++] & 255;
+                if (nameLength <= 0 || pos + nameLength + 2 > data.length) {
+                    return false;
+                }
+                byte[] nameBytes = new byte[nameLength];
+                System.arraycopy(data, pos, nameBytes, 0, nameLength);
+                xorPackBytes(nameBytes, key);
+                String name = new String(nameBytes);
+                if (name.indexOf('/') >= 0 || name.indexOf('\\') >= 0) {
+                    return false;
+                }
+                pos += nameLength;
+                int length = ((data[pos] & 255) << 8) | (data[pos + 1] & 255);
+                pos += 2;
+                names[i] = name;
+                offsets[i] = dataOffset;
+                lengths[i] = length;
+                dataOffset += length;
+            }
+            if (pos + dataOffset != data.length) {
+                return false;
+            }
+            byte[] fullData = new byte[dataOffset];
+            System.arraycopy(data, pos, fullData, 0, dataOffset);
+            xorPackBytes(fullData, key);
+            for (int i = 0; i < count; i++) {
+                String lowerName = names[i].toLowerCase();
+                if (lowerName.endsWith(".png") && !isPngData(fullData, offsets[i], lengths[i])) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+    private static void xorPackBytes(byte[] data, byte[] key) {
+        for (int i = 0; i < data.length; i++) {
+            data[i] ^= key[i % key.length];
+        }
+    }
+    private static boolean isPngData(byte[] data, int offset, int length) {
+        return length >= 8
+                && data[offset] == (byte) 0x89
+                && data[offset + 1] == 0x50
+                && data[offset + 2] == 0x4e
+                && data[offset + 3] == 0x47
+                && data[offset + 4] == 0x0d
+                && data[offset + 5] == 0x0a
+                && data[offset + 6] == 0x1a
+                && data[offset + 7] == 0x0a;
     }
     public static Image cutImage(mImage img, int pos) {
         int sw = img.image.getWidth();

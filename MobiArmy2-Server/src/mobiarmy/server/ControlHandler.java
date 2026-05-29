@@ -66,6 +66,7 @@ public class ControlHandler {
         syncCommands.add(-4);
         syncCommands.add(-3);
         syncCommands.add(-2);
+        syncCommands.add(-28);
         syncCommands.add(6);
         syncCommands.add(7);
         syncCommands.add(8);
@@ -445,11 +446,11 @@ public class ControlHandler {
                     byte type = msg.reader().readByte();
                     byte version = msg.reader().readByte();
                     switch (type) {
-                        case 1 -> this.session.sessionHandler.iconInfo(12, version);
-                        case 2 -> this.session.sessionHandler.mapInfo(12, version);
-                        case 3 -> this.session.sessionHandler.layerInfo(12, version);
-                        case 4 -> this.session.sessionHandler.dataInfo(12, version);
-                        case 5 -> this.session.sessionHandler.captionInfo(12, version);
+                        case 1 -> this.session.sessionHandler.iconInfo(GameData.resourceVersion("res/map/icon"), version);
+                        case 2 -> this.session.sessionHandler.mapInfo(GameData.resourceVersion("res/map"), version);
+                        case 3 -> this.session.sessionHandler.layerInfo(GameData.resourceVersion("res/player"), version);
+                        case 4 -> this.session.sessionHandler.dataInfo(GameData.resourceVersion("res/item_special.png", "res", "cache/equipdata2"), version);
+                        case 5 -> this.session.sessionHandler.captionInfo(GameData.resourceVersion("cache/levelCData2"), version);
                         case 6 -> {
                             this.session.sessionHandler.loadInfo();
                             this.session.sessionHandler.updateRuong();

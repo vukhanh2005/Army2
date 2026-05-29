@@ -745,6 +745,12 @@ public class GameScr extends CScreen {
                     PM.getCurPlayer().angryX = 0;
                     PM.getCurPlayer().currAngry = 0;
                     PM.getCurPlayer().is2TurnItem = true;
+                    PM.getCurPlayer().isSecondPower = false;
+                    PM.getCurPlayer().force = 0;
+                    PM.getCurPlayer().force_2 = 0;
+                    PM.getCurPlayer().forceSelectedBySlider = GameScr.aimAssistEnabled;
+                    PM.getCurPlayer().setState((byte) 0);
+                    PM.getCurPlayer().checkAngleForSprite();
                     GameScr.this.isShowPausemenu = false;
                     GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                 }

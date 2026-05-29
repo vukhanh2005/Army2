@@ -1,6 +1,8 @@
 sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ["src/"]
 sourceSets.main.resources.srcDirs = ["assets"]
+sourceSets.main.compileClasspath += project(":core").sourceSets.main.output
+sourceSets.main.runtimeClasspath += project(":core").sourceSets.main.output
 
 project.ext.mainClassName = "com.mygdx.game.DesktopLauncher"
 project.ext.assetsDir = file("assets")

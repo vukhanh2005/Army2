@@ -2,4 +2,12 @@
 <project name="MobiArmy" default="default" basedir=".">
     <description>Builds, tests, and runs the project MobiArmy.</description>
     <import file="nbproject/build-impl.xml"/>
+    <target name="-post-jar">
+        <copy todir="${dist.dir}/res" overwrite="true">
+            <fileset dir="res"/>
+        </copy>
+        <copy todir="${dist.dir}/cache" overwrite="true">
+            <fileset dir="cache"/>
+        </copy>
+    </target>
 </project>
