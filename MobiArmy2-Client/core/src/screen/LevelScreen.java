@@ -19,12 +19,22 @@ public class LevelScreen extends TabScreen {
    int select = 0;
    short currPoint;
    short[] currAbility = new short[5];
-   byte[] deltaA = new byte[5];
+   short[] deltaA = new short[5];
    Command cmdSelect;
    public static final String[] strAbility = new String[]{Language.heath(), Language.dam(), Language.defend(), Language.lucky(), Language.team()};
    Command cmdLamlai;
    byte[] canUp = new byte[5];
    byte[] canDown = new byte[5];
+   private static final int HOLD_NONE = 0;
+   private static final int HOLD_DOWN = -1;
+   private static final int HOLD_UP = 1;
+   private static final int HOLD_INITIAL_DELAY = 10;
+   private static final int HOLD_REPEAT_DELAY = 3;
+   private int holdAction;
+   private int holdIndex;
+   private int holdPointerIndex;
+   private int holdTick;
+   private boolean holdTriggered;
    static {
       try {
          ability = mImage.createImage("/item/ability.png");
@@ -42,7 +52,8 @@ public class LevelScreen extends TabScreen {
          this.currAbility[i] = TerrainMidlet.myInfo.ability[i];
          this.canDown[i] = 0;
       }
-      this.deltaA = new byte[5];
+      this.deltaA = new short[5];
+      this.stopHoldPoint();
       PlayerInfo m = TerrainMidlet.myInfo;
       this.title = "Lvl " + m.level2 + (m.level2Percen >= 0 ? "+" : "") + m.level2Percen + "%";
       if (m.point > 0) {
@@ -156,6 +167,45 @@ public class LevelScreen extends TabScreen {
          }
       }
    }
+   private void stopHoldPoint() {
+      this.holdAction = HOLD_NONE;
+      this.holdIndex = -1;
+      this.holdPointerIndex = -1;
+      this.holdTick = 0;
+      this.holdTriggered = false;
+   }
+   private boolean pointArrowAt(int x, int y, int index, int action) {
+      int arrowX = action == HOLD_UP ? this.xPaint + 130 : this.xPaint + 70;
+      int arrowY = this.yPaint + 57 - 25 + index * 25;
+      return x >= arrowX && x <= arrowX + 30 && y >= arrowY && y <= arrowY + 30;
+   }
+   private int pointArrowIndexAt(int x, int y, int action) {
+      for (int i = 0; i < 5; i++) {
+         if (this.pointArrowAt(x, y, i, action)) {
+            return i;
+         }
+      }
+      return -1;
+   }
+   private void applyHoldAction() {
+      if (this.holdIndex < 0 || this.holdIndex > 4) {
+         return;
+      }
+      this.select = this.holdIndex;
+      if (this.holdAction == HOLD_UP) {
+         this.doUp();
+      } else if (this.holdAction == HOLD_DOWN) {
+         this.doDown();
+      }
+   }
+   private void startHoldPoint(int action, int index, int pointerIndex) {
+      this.holdAction = action;
+      this.holdIndex = index;
+      this.holdPointerIndex = pointerIndex;
+      this.holdTick = HOLD_INITIAL_DELAY;
+      this.holdTriggered = true;
+      this.applyHoldAction();
+   }
    public static void paintLevelPercen(mGraphics g, int x, int y) {
       PlayerInfo m = TerrainMidlet.myInfo;
       g.setColor(1521982);
@@ -210,9 +260,22 @@ public class LevelScreen extends TabScreen {
    }
    public void onPointerPressed(int xPress, int yPress, int index) {
       super.onPointerPressed(xPress, yPress, index);
+      int upIndex = this.pointArrowIndexAt(xPress, yPress, HOLD_UP);
+      if (upIndex >= 0) {
+         this.startHoldPoint(HOLD_UP, upIndex, index);
+         return;
+      }
+      int downIndex = this.pointArrowIndexAt(xPress, yPress, HOLD_DOWN);
+      if (downIndex >= 0) {
+         this.startHoldPoint(HOLD_DOWN, downIndex, index);
+      }
    }
    public void onPointerReleased(int xReleased, int yReleased, int index) {
       super.onPointerReleased(xReleased, yReleased, index);
+      if (this.holdTriggered) {
+         this.stopHoldPoint();
+         return;
+      }
       int aa = (yReleased - (this.yPaint + 57 - 25)) / 25;
       this.select = aa;
       if (this.select < 0) {
@@ -232,6 +295,17 @@ public class LevelScreen extends TabScreen {
    public void update() {
       super.update();
       GameScr.sm.update();
+      if (this.holdAction != HOLD_NONE) {
+         if (this.holdIndex < 0 || this.holdIndex > 4 || this.holdPointerIndex < 0 || !CCanvas.isPointerDown[this.holdPointerIndex]) {
+            this.stopHoldPoint();
+         } else {
+            --this.holdTick;
+            if (this.holdTick <= 0) {
+               this.applyHoldAction();
+               this.holdTick = HOLD_REPEAT_DELAY;
+            }
+         }
+      }
       if (TerrainMidlet.myInfo.point >= 0) {
          this.center = this.cmdSelect;
          this.left = this.cmdLamlai;

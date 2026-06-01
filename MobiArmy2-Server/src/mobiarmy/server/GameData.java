@@ -79,6 +79,128 @@ public class GameData {
         }
         return (int) (crc.getValue() % 127) + 1;
     }
+    public static int equipmentDataVersion() {
+        CRC32 crc = new CRC32();
+        updateResourceVersion(crc, new File("res/item_special.png"));
+        updateResourceVersion(crc, new File("res"));
+        updateResourceVersion(crc, new File("cache/equipdata2"));
+        updateGlassVersion(crc);
+        updateEquipVersion(crc, Equip.entrys);
+        updateEquipVersion(crc, ShopEquipment.entrys);
+        updateItemVersion(crc);
+        return (int) (crc.getValue() % 127) + 1;
+    }
+    private static void updateGlassVersion(CRC32 crc) {
+        if (Glass.entrys == null) {
+            return;
+        }
+        for (Glass glass : Glass.entrys) {
+            if (glass == null) {
+                continue;
+            }
+            updateString(crc, glass.name);
+            updateInt(crc, glass.id);
+            updateInt(crc, glass.xu);
+            updateInt(crc, glass.luong);
+            updateInt(crc, glass.att);
+            updateInt(crc, glass.friction);
+            updateInt(crc, glass.angle);
+            updateInt(crc, glass.distance);
+            updateInt(crc, glass.bullet);
+            updateIntArray(crc, glass.ability);
+            updateShortArray(crc, glass.equipID);
+        }
+    }
+    private static void updateEquipVersion(CRC32 crc, Equip[] equips) {
+        if (equips == null) {
+            return;
+        }
+        for (Equip equip : equips) {
+            if (equip == null) {
+                continue;
+            }
+            updateString(crc, equip.name);
+            updateInt(crc, equip.glassID);
+            updateInt(crc, equip.id);
+            updateInt(crc, equip.type);
+            updateInt(crc, equip.bullet);
+            updateInt(crc, equip.icon);
+            updateInt(crc, equip.level);
+            updateInt(crc, equip.level2);
+            updateShortArray(crc, equip.x);
+            updateShortArray(crc, equip.y);
+            updateByteArray(crc, equip.w);
+            updateByteArray(crc, equip.h);
+            updateByteArray(crc, equip.dx);
+            updateByteArray(crc, equip.dy);
+            updateByteArray(crc, equip.inv_ability);
+            updateByteArray(crc, equip.inv_percen);
+            updateShortArray(crc, equip.data);
+            updateInt(crc, equip.date);
+            updateInt(crc, equip.luong);
+            updateInt(crc, equip.xu);
+            updateInt(crc, equip.vip);
+        }
+    }
+    private static void updateItemVersion(CRC32 crc) {
+        if (Item.entrys == null) {
+            return;
+        }
+        for (Item item : Item.entrys) {
+            if (item == null) {
+                continue;
+            }
+            updateString(crc, item.name);
+            updateInt(crc, item.id);
+            updateInt(crc, item.xu);
+            updateInt(crc, item.luong);
+            updateInt(crc, item.carryable);
+        }
+    }
+    private static void updateString(CRC32 crc, String value) {
+        if (value == null) {
+            updateInt(crc, -1);
+            return;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            crc.update(value.charAt(i));
+        }
+    }
+    private static void updateInt(CRC32 crc, int value) {
+        for (int i = 0; i < 4; i++) {
+            crc.update((value >> (i * 8)) & 0xff);
+        }
+    }
+    private static void updateIntArray(CRC32 crc, int[] values) {
+        if (values == null) {
+            updateInt(crc, -1);
+            return;
+        }
+        updateInt(crc, values.length);
+        for (int value : values) {
+            updateInt(crc, value);
+        }
+    }
+    private static void updateShortArray(CRC32 crc, short[] values) {
+        if (values == null) {
+            updateInt(crc, -1);
+            return;
+        }
+        updateInt(crc, values.length);
+        for (short value : values) {
+            updateInt(crc, value);
+        }
+    }
+    private static void updateByteArray(CRC32 crc, byte[] values) {
+        if (values == null) {
+            updateInt(crc, -1);
+            return;
+        }
+        updateInt(crc, values.length);
+        for (byte value : values) {
+            crc.update(value & 0xff);
+        }
+    }
     private static void updateResourceVersion(CRC32 crc, File file) {
         if (file == null || !file.exists()) {
             return;

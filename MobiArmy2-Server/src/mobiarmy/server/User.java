@@ -108,7 +108,7 @@ public class User {
     }
     public Glass getGlass(byte glassID) {
         for (Glass g : this.glass) {
-            if (g != null && g.id == glassID) {
+            if (g.id == glassID) {
                 return g;
             }
         }

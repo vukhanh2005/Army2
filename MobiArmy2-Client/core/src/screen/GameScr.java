@@ -200,6 +200,8 @@ public class GameScr extends CScreen {
     boolean isPressXF;
     private long lastKeyboardMoveSend;
     private boolean hasPendingKeyboardMove;
+    private static final int DIRECT_ITEM_SLOT_SIZE = 26;
+    private static final int DIRECT_ITEM_ICON_OFFSET = 5;
     static {
         FilePack filePak = null;
         try {
@@ -515,10 +517,96 @@ public class GameScr extends CScreen {
         if (CCanvas.pausemenu.isShow || CCanvas.currentDialog != null || (CCanvas.menu != null && CCanvas.menu.showMenu) || this.isSelectItem) {
             return true;
         }
+        if (this.canUseDirectItemBar()) {
+            CPlayer player = PM.getMyPlayer();
+            int barX = this.getDirectItemBarX();
+            int barY = this.getDirectItemBarY();
+            if (player != null && player.item != null && y >= barY && y <= barY + DIRECT_ITEM_SLOT_SIZE && x >= barX && x <= barX + player.item.length * DIRECT_ITEM_SLOT_SIZE) {
+                return true;
+            }
+        }
         if (y <= 60 && (x <= 120 || x >= CCanvas.width - 60)) {
             return true;
         }
         return false;
+    }
+    private boolean canOpenQuickItemPanel() {
+        return pm != null && pm.isYourTurn() && PM.getMyPlayer() != null && !CPlayer.isShooting && !BM.active;
+    }
+    private boolean canUseDirectItemBar() {
+        return this.canOpenQuickItemPanel() && CCanvas.currentDialog == null && (CCanvas.menu == null || !CCanvas.menu.showMenu) && (CCanvas.pausemenu == null || !CCanvas.pausemenu.isShow) && !this.isSelectItem;
+    }
+    private int getDirectItemBarX() {
+        int slots = PM.getMyPlayer() != null && PM.getMyPlayer().item != null ? PM.getMyPlayer().item.length : PrepareScr.numCurItemSlot;
+        return Math.max(4, CCanvas.width - 64 - slots * DIRECT_ITEM_SLOT_SIZE);
+    }
+    private int getDirectItemBarY() {
+        return CCanvas.isTouch ? 7 : Camera.y + CCanvas.hieght - 58;
+    }
+    private boolean isDirectItemSlotUsable(int slot) {
+        CPlayer player = PM.getMyPlayer();
+        if (player == null || player.item == null || slot < 0 || slot >= player.item.length) {
+            return false;
+        }
+        int itemId = player.item[slot];
+        if (player.itemUsed != -1 || itemId == -2 || itemId == -1) {
+            return false;
+        }
+        return PrepareScr.currLevel != 7 || num == null || slot >= num.length || num[slot] != 0;
+    }
+    private boolean useDirectItemSlot(int slot) {
+        if (!this.canUseDirectItemBar() || !this.isDirectItemSlotUsable(slot)) {
+            return false;
+        }
+        int[] itemList = PM.getMyPlayer().item;
+        curItemSelec = slot;
+        if (trainingMode) {
+            PM.getMyPlayer().UseItem(itemList[slot], true, slot);
+            if (itemList[slot] == 0) {
+                PM.p[0].hp += 30;
+            }
+        } else {
+            PM.getMyPlayer().UseItem(itemList[slot], false, slot);
+        }
+        this.timeDelayClosePauseMenu = mSystem.currentTimeMillis() + 300L;
+        clearKey();
+        return true;
+    }
+    private boolean handleDirectItemBarPointer(int x, int y, int index) {
+        if (!this.canUseDirectItemBar()) {
+            return false;
+        }
+        CPlayer player = PM.getMyPlayer();
+        int slots = player.item.length;
+        int barX = this.getDirectItemBarX();
+        int barY = this.getDirectItemBarY();
+        if (!CCanvas.isPointer(barX, barY, slots * DIRECT_ITEM_SLOT_SIZE, DIRECT_ITEM_SLOT_SIZE, index)) {
+            return false;
+        }
+        int slot = (x - barX) / DIRECT_ITEM_SLOT_SIZE;
+        return this.useDirectItemSlot(slot);
+    }
+    private void drawDirectItemBar(mGraphics g) {
+        if (!this.canUseDirectItemBar()) {
+            return;
+        }
+        CPlayer player = PM.getMyPlayer();
+        int barX = this.getDirectItemBarX();
+        int barY = this.getDirectItemBarY();
+        for (int i = 0; i < player.item.length; i++) {
+            if (!this.isDirectItemSlotUsable(i)) {
+                continue;
+            }
+            int x = barX + i * DIRECT_ITEM_SLOT_SIZE;
+            g.setColor(i == curItemSelec ? 16776960 : 6457531);
+            g.fillRect(x, barY, DIRECT_ITEM_SLOT_SIZE - 3, DIRECT_ITEM_SLOT_SIZE - 3, false);
+            g.setColor(12965614);
+            g.drawRect(x, barY, DIRECT_ITEM_SLOT_SIZE - 3, DIRECT_ITEM_SLOT_SIZE - 3, false);
+            Item.DrawItem(g, player.item[i], x + DIRECT_ITEM_ICON_OFFSET, barY + DIRECT_ITEM_ICON_OFFSET);
+            if (PrepareScr.currLevel == 7 && num != null && i < num.length) {
+                Font.smallFontYellow.drawString(g, String.valueOf(num[i]), x + DIRECT_ITEM_SLOT_SIZE - 8, barY + DIRECT_ITEM_SLOT_SIZE - 12, 2);
+            }
+        }
     }
     private void aimInFreeCamera(int x, int y) {
         if (Camera.mode == 0 && pm.isYourTurn() && PM.getMyPlayer() != null && !isBattleUiPointer(x, y)) {
@@ -724,18 +812,6 @@ public class GameScr extends CScreen {
                 GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
             }
         }));
-        if (pm.isYourTurn()) {
-            menu.addElement(new Command(Language.USEITEM(), new IAction() {
-                public void perform() {
-                    if (GameScr.pm.isYourTurn()) {
-                        GameScr.this.isSelectItem = true;
-                    }
-                    GameScr.this.isShowPausemenu = false;
-                    GameScr.curItemSelec = 7;
-                    GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
-                }
-            }));
-        }
         if (pm.isYourTurn() && PM.getCurPlayer().isAngry && !PM.getCurPlayer().isUsedItem) {
             menu.addElement(new Command(Language.SPECIAL(), new IAction() {
                 public void perform() {
@@ -1281,20 +1357,10 @@ public class GameScr extends CScreen {
         }
         if (CCanvas.currentDialog == null && !this.isSelectItem) {
             this.drawMenuCameraIcon(g);
+            this.drawDirectItemBar(g);
         }
-        if (!CRes.isNullOrEmpty(tfChat.getText()) && this.isChat) {
-            this.isChat = false;
-            if (this.chatWait == 0) {
-                text = tfChat.getText();
-                GameService.gI().chatToBoard(text);
-                tfChat.setText("");
-                this.showChat(TerrainMidlet.myInfo.IDDB, text);
-                CCanvas.gameScr.showChat(TerrainMidlet.myInfo.IDDB, text, 90);
-                this.chatWait = this.chatDelay;
-            } else {
-                tfChat.setText("");
-            }
-            clearKey();
+        if (this.isChat) {
+            tfChat.paint(g);
         }
         this.drawChat(g);
         if (CCanvas.isDebugging()) {
@@ -1503,6 +1569,42 @@ public class GameScr extends CScreen {
             }
         }
     }
+    private void submitChat() {
+        if (!this.isChat) {
+            return;
+        }
+        this.isChat = false;
+        String chatText = tfChat.getText();
+        if (!CRes.isNullOrEmpty(chatText) && this.chatWait == 0) {
+            GameService.gI().chatToBoard(chatText);
+            this.showChat(TerrainMidlet.myInfo.IDDB, chatText);
+            CCanvas.gameScr.showChat(TerrainMidlet.myInfo.IDDB, chatText, 90);
+            this.chatWait = this.chatDelay;
+        }
+        tfChat.setText("");
+        clearKey();
+    }
+    public void keyPressed(int keyCode) {
+        if (this.isChat) {
+            if (keyCode == 10 || keyCode == -5) {
+                this.submitChat();
+            } else {
+                tfChat.keyPressed(keyCode);
+            }
+            return;
+        }
+        super.keyPressed(keyCode);
+    }
+    public void onKeyPressHold(char keyCode) {
+        if (!this.isChat) {
+            return;
+        }
+        if (keyCode == '\n' || keyCode == '\r') {
+            this.submitChat();
+        } else {
+            tfChat.keyPressed((int) keyCode);
+        }
+    }
     private boolean isPointOnForceSlider(int x, int y, boolean second) {
         if (!aimAssistEnabled) {
             return false;
@@ -1607,6 +1709,9 @@ public class GameScr extends CScreen {
         }
     }
     public void onPointerPressed(int xScreen, int yScreen, int index) {
+        if (this.handleDirectItemBarPointer(xScreen, yScreen, index)) {
+            return;
+        }
         if (!this.isSelectItem && pm != null && pm.isYourTurn()) {
             if (this.isPointOnForceSlider(xScreen, yScreen, false)) {
                 this.isAdjustingForce1 = true;
@@ -1715,6 +1820,9 @@ public class GameScr extends CScreen {
         }
         if (Camera.mode == 0 && !isBattleUiPointer(x, y2)) {
             this.aimInFreeCamera(x, y2);
+        }
+        if (this.handleDirectItemBarPointer(x, y2, index)) {
+            return;
         }
         if (Camera.mode == 1 && !this.isSelectItem && !isBattleUiPointer(x, y2)) {
             pm.onPointerReleased(x, y2, index);

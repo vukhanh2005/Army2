@@ -449,7 +449,7 @@ public class ControlHandler {
                         case 1 -> this.session.sessionHandler.iconInfo(GameData.resourceVersion("res/map/icon"), version);
                         case 2 -> this.session.sessionHandler.mapInfo(GameData.resourceVersion("res/map"), version);
                         case 3 -> this.session.sessionHandler.layerInfo(GameData.resourceVersion("res/player"), version);
-                        case 4 -> this.session.sessionHandler.dataInfo(GameData.resourceVersion("res/item_special.png", "res", "cache/equipdata2"), version);
+                        case 4 -> this.session.sessionHandler.dataInfo(GameData.equipmentDataVersion(), version);
                         case 5 -> this.session.sessionHandler.captionInfo(GameData.resourceVersion("cache/levelCData2"), version);
                         case 6 -> {
                             this.session.sessionHandler.loadInfo();

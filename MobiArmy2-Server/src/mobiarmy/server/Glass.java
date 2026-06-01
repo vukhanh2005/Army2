@@ -25,19 +25,19 @@ public class Glass {
     public static void loadGlass() throws SQLException {
         ArrayList<DBManager.DataRow> rows = Server.dbManager.selectColumnName("SELECT * FROM glass");
         entrys = new Glass[rows.size()];
-        for (DBManager.DataRow row : rows) {
+        for (int i = 0; i < rows.size(); i++) {
             Glass glass = new Glass();
-            glass.id = row.getByte("id");
-            glass.name = row.getString("name");
-            glass.equipID = new Gson().fromJson(row.getString("equipID"), short[].class);
-            glass.ability = new Gson().fromJson(row.getString("ability"), int[].class);
-            glass.att = row.getInt("att");
-            glass.friction = row.getInt("friction");
-            glass.angle = row.getInt("angle");
-            glass.distance = row.getInt("distance");
-            glass.bullet = row.getInt("bullet");
-            glass.xu = row.getInt("xu");
-            glass.luong = row.getInt("luong");
+            glass.id = rows.get(i).getByte("id");
+            glass.name = rows.get(i).getString("name");
+            glass.equipID = new Gson().fromJson(rows.get(i).getString("equipID"), short[].class);
+            glass.ability = new Gson().fromJson(rows.get(i).getString("ability"), int[].class);
+            glass.att = rows.get(i).getInt("att");
+            glass.friction = rows.get(i).getInt("friction");
+            glass.angle = rows.get(i).getInt("angle");
+            glass.distance = rows.get(i).getInt("distance");
+            glass.bullet = rows.get(i).getInt("bullet");
+            glass.xu = rows.get(i).getInt("xu");
+            glass.luong = rows.get(i).getInt("luong");
             entrys[glass.id] = glass;
         }
     }

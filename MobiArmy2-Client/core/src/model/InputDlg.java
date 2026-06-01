@@ -56,7 +56,7 @@ public class InputDlg extends Dialog {
    }
    public void onPointerPressed(int x, int y2, int index) {
       if (CCanvas.isPointer(this.tfInput.x, this.tfInput.y, this.tfInput.width, this.tfInput.height, index)) {
-         this.tfInput.doChangeToTextBox();
+         this.tfInput.setisFocus(true);
       }
    }
    public void show() {

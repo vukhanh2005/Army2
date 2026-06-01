@@ -100,6 +100,7 @@ public class PrepareScr extends CScreen {
     public static FilePack filePak;
     public static byte[] fileData;
     public int chatDelay;
+    private boolean isChat;
     public int readyDelay;
     int xPaintMap;
     int yPaintMap;
@@ -839,7 +840,6 @@ public class PrepareScr extends CScreen {
         } else {
             this.right = this.cmdBack;
         }
-        this.doChat();
         tfChat.update();
         if (this.isChooseItem) {
             prepareScrItemIcon.update();
@@ -867,6 +867,9 @@ public class PrepareScr extends CScreen {
             g.translate(-g.getTranslateX(), -g.getTranslateY());
             if (CCanvas.isTouch) {
                 g.drawImage(iconChat, 30, 10, 0, false);
+            }
+            if (this.isChat) {
+                tfChat.paint(g);
             }
             super.paint(g);
         }
@@ -1235,9 +1238,35 @@ public class PrepareScr extends CScreen {
             } else {
                 this.isTouchItem = false;
                 if (CCanvas.isPointer(30, 0, 50, 50, index)) {
+                    this.isChat = true;
                     tfChat.doChangeToTextBox();
                 }
             }
+        }
+    }
+    public void keyPressed(int keyCode) {
+        if (this.isChat) {
+            if (keyCode == 10 || keyCode == -5) {
+                this.isChat = false;
+                this.doChat();
+                clearKey();
+            } else {
+                tfChat.keyPressed(keyCode);
+            }
+            return;
+        }
+        super.keyPressed(keyCode);
+    }
+    public void onKeyPressHold(char keyCode) {
+        if (!this.isChat) {
+            return;
+        }
+        if (keyCode == '\n' || keyCode == '\r') {
+            this.isChat = false;
+            this.doChat();
+            clearKey();
+        } else {
+            tfChat.keyPressed((int) keyCode);
         }
     }
     public void onPointerDragged(int xDrag, int yDrag, int index) {

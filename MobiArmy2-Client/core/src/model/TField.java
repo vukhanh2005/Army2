@@ -1,11 +1,8 @@
 package model;
 import CLib.mGraphics;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import coreLG.CCanvas;
 import network.Command;
 import screen.CScreen;
-import javax.swing.*;
 public class TField {
     public String name;
     public int x;
@@ -94,16 +91,9 @@ public class TField {
         if (!this.isVisible || this.isOpenInput) {
             return;
         }
-        this.isOpenInput = true;
-        String input = JOptionPane.showInputDialog(null, "Nhập thông tin:");
-        if (input != null && !input.isEmpty()) {
-            TField.this.text = input;
-            if (TField.this.inputType == 2) {
-                TField.this.setText(TField.this.text);
-            }
-            TField.this.subStringContent = TField.this.getSubString(TField.this.width - 10);
-        }
-        this.isOpenInput = false;
+        this.isFocus = true;
+        this.caretPos = this.text.length();
+        this.showCaretCounter = MAX_SHOW_CARET_COUNER;
     }
     public void setisFocus(boolean isFocus) {
         this.isFocus = isFocus;
@@ -169,6 +159,7 @@ public class TField {
             this.text = ttext;
             this.keyInActiveState = MAX_TIME_TO_CONFIRM_KEY[typeXpeed];
             this.setPasswordTest();
+            this.subStringContent = this.getSubString(this.width - 10);
         } else if (this.text.length() < this.maxTextLenght) {
             if (mode == 1 && this.lastKey != -1984) {
                 mode = 0;
@@ -193,6 +184,7 @@ public class TField {
             ++this.caretPos;
             this.setPasswordTest();
             this.setOffset();
+            this.subStringContent = this.getSubString(this.width - 10);
         }
         this.lastKey = keyCode;
     }
@@ -207,6 +199,7 @@ public class TField {
                 ++this.caretPos;
                 this.setPasswordTest();
                 this.setOffset();
+                this.subStringContent = this.getSubString(this.width - 10);
             }
         }
     }
@@ -409,11 +402,7 @@ public class TField {
     }
     public void setTextBox() {
         if (CCanvas.isPointer(this.x, this.y, this.width, this.height, 0)) {
-            if (!this.isFocus) {
-                this.isFocus = true;
-            } else {
-                this.doChangeToTextBox();
-            }
+            this.doChangeToTextBox();
         } else {
             this.isFocus = false;
         }

@@ -471,6 +471,18 @@ public class LoginScr extends CScreen {
         }
         super.keyPressed(keyCode);
     }
+    public void onKeyPressHold(char keyCode) {
+        if (CCanvas.currentDialog != null || keyCode == '\n' || keyCode == '\r') {
+            return;
+        }
+        if (this.focus == 0) {
+            this.tUser.keyPressed((int) keyCode);
+        } else if (this.focus == 1) {
+            this.tPass.keyPressed((int) keyCode);
+        } else if (this.focus == 3) {
+            this.tEmail.keyPressed((int) keyCode);
+        }
+    }
     public void paintBackG(mGraphics g) {
         Background.paintMenuBackGround(g);
     }
@@ -735,7 +747,7 @@ public class LoginScr extends CScreen {
                         if (this.focus != 0) {
                             this.focus = 0;
                         } else {
-                            this.tUser.doChangeToTextBox();
+                            this.tUser.setisFocus(true);
                         }
                         this.focusUpdate();
                     }
@@ -744,7 +756,7 @@ public class LoginScr extends CScreen {
                         if (this.focus != 1) {
                             this.focus = 1;
                         } else {
-                            this.tPass.doChangeToTextBox();
+                            this.tPass.setisFocus(true);
                         }
                         this.focusUpdate();
                     }
@@ -753,7 +765,7 @@ public class LoginScr extends CScreen {
                         if (this.focus != 3) {
                             this.focus = 3;
                         } else {
-                            this.tEmail.doChangeToTextBox();
+                            this.tEmail.setisFocus(true);
                         }
                         this.focusUpdate();
                     }
@@ -767,7 +779,7 @@ public class LoginScr extends CScreen {
                         if (this.focus != 0) {
                             this.focus = 0;
                         } else {
-                            this.tUser.doChangeToTextBox();
+                            this.tUser.setisFocus(true);
                         }
                         this.focusUpdate();
                     }
@@ -777,7 +789,7 @@ public class LoginScr extends CScreen {
                         if (this.focus != 1) {
                             this.focus = 1;
                         } else {
-                            this.tPass.doChangeToTextBox();
+                            this.tPass.setisFocus(true);
                         }
                         this.focusUpdate();
                     }

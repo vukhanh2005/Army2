@@ -620,7 +620,7 @@ public class GameService {
         }
         this.session.sendMessage(m);
     }
-    public void addPoint(byte[] point) {
+    public void addPoint(short[] point) {
         Message m = new Message((byte) 98);
         try {
             m.writer().writeShort(point[0]);

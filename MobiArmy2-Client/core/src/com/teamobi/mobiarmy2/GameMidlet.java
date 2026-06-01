@@ -25,7 +25,8 @@ import network.Message;
 import network.MessageHandler;
 import network.Session_ME;
 import screen.ServerListScreen;
-public class GameMidlet extends MIDlet implements IActionListener {
+public class
+GameMidlet extends MIDlet implements IActionListener {
     public static GameMidlet instance = new GameMidlet();
     public static CCanvas gameCanvas;
     public static String version = "2.4.1";

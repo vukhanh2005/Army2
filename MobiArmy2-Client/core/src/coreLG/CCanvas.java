@@ -1025,6 +1025,15 @@ public class CCanvas extends MotherCanvas implements IActionListener {
     public void keyHold(int keycode) {
     }
     public void keyHold(char keycode) {
+        if (currentDialog == inputDlg && inputDlg != null) {
+            if (keycode != '\n' && keycode != '\r') {
+                inputDlg.tfInput.keyPressed((int) keycode);
+            }
+            return;
+        }
+        if (curScr != null) {
+            curScr.onKeyPressHold(keycode);
+        }
     }
     public void perform(int idAction, Object p) {
     }
