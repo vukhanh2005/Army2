@@ -31,21 +31,30 @@ public class Confirm {
                 Equip equip = this.user.getEquip(array[0]);
                 LinhTinh item = this.user.getLinhTinh(array[1]);
                 if (equip != null && item != null) {
-                    if (equip.slot() > 0) {
-                        equip.slot[equip.slot()-1] = item.id;
-                        for (int i = 0; i < item.ability.length; i++) {
-                            equip.inv_ability[i] += item.ability[i];
+                    int num = array.length >= 3 ? array[2] : 1;
+                    if (num <= 0) {
+                        num = 1;
+                    }
+                    if (num > item.num) {
+                        num = item.num;
+                    }
+                    if (equip.slot() >= num) {
+                        for (int count = 0; count < num; count++) {
+                            equip.slot[equip.slot()-1] = item.id;
+                            for (int i = 0; i < item.ability.length; i++) {
+                                equip.inv_ability[i] += item.ability[i];
+                            }
                         }
                         if (this.user.session != null) {
                             this.user.session.sessionHandler.updateEquip(equip);
                         }
-                        this.user.addLinhTinh(item.id, -1);
+                        this.user.addLinhTinh(item.id, -num);
                         if (this.user.session != null) {
                             this.user.session.sessionHandler.log(__("Chúc mừng bạn đã kết hợp thành công."));
                         }
                     } else {
                         if (this.user.session != null) {
-                            this.user.session.sessionHandler.log(__("Trang bị đã hết số lần kết hợp."));
+                            this.user.session.sessionHandler.log(String.format(__("Trang bị không đủ slot trống để ghép %d viên ngọc."), num));
                         }
                     }
                 }

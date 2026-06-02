@@ -43,7 +43,19 @@ public class Select {
     }
     public void make() {
         if (this.sizeOfType(0) == 1 && this.sizeOfType(1) == 1 && this.getFirstOfType(1).id < 50) {
-            this.user.getConfirm().addConfirm(0, __("Bạn có muốn gắn ngọc vào trang bị?."), new int[]{this.getFirstOfType(0).id, this.getFirstOfType(1).id});
+            Element gemElement = this.getFirstOfType(1);
+            LinhTinh item = this.user.getLinhTinh(gemElement.id);
+            if (item != null) {
+                int num = gemElement.num <= 0 ? 1 : gemElement.num;
+                if (num > item.num) {
+                    num = item.num;
+                }
+                this.user.getConfirm().addConfirm(0, String.format(
+                        __("Bạn có chắc chắn muốn ghép %d viên %s vào không?"),
+                        num,
+                        item.name
+                ), new int[]{this.getFirstOfType(0).id, item.id, num});
+            }
         } else if(this.sizeOfType(0) == 0 && this.sizeOfType(1) == 1 && this.getFirstOfType(1).id < 50 && this.getFirstOfType(1).num > 0) {
             Element element = getFirstOfType(1);
             LinhTinh item = this.user.getLinhTinh(this.getFirstOfType(1).id);

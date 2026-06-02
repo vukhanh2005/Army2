@@ -41,6 +41,18 @@ public class Inventory extends TabScreen {
    int pa = 0;
    boolean trans = false;
    Command cmdCombine;
+   boolean isItemPopup;
+   boolean isGemPicker;
+   Equip popupEquip;
+   Equip socketEquip;
+   Vector gemOptions = new Vector();
+   int gemSelect;
+   int gemScroll;
+   int gemScrollTo;
+   int gemScrollLim;
+   int popupButtonSelect;
+   boolean gemQuantityMode;
+   int gemQuantity;
    public Inventory() {
       this.xPaint = CCanvas.width / 2 - 85;
       this.yPaint = (CCanvas.hieght - CScreen.cmdH) / 2 - 85;
@@ -60,8 +72,12 @@ public class Inventory extends TabScreen {
       }
       this.cmdCombine = new Command(Language.select(), new IAction() {
          public void perform() {
-            if (!Inventory.this.isCombineNum) {
-               Inventory.this.doCombineSelect();
+            if (Inventory.this.isGemPicker) {
+               Inventory.this.confirmSelectedGem();
+            } else if (Inventory.this.isItemPopup) {
+               Inventory.this.performSelectedPopupButton();
+            } else if (!Inventory.this.isCombineNum) {
+               Inventory.this.showItemPopup(Inventory.this.getEquipSelect());
             } else {
                Inventory.this.isCombineNum = false;
             }
@@ -127,7 +143,15 @@ public class Inventory extends TabScreen {
       });
       this.right = new Command(Language.back(), new IAction() {
          public void perform() {
-            if (!Inventory.this.isCombineNum) {
+            if (Inventory.this.isItemPopup) {
+               Inventory.this.hideItemPopup();
+            } else if (Inventory.this.isGemPicker) {
+               if (Inventory.this.gemQuantityMode) {
+                  Inventory.this.gemQuantityMode = false;
+               } else {
+                  Inventory.this.isGemPicker = false;
+               }
+            } else if (!Inventory.this.isCombineNum) {
                CCanvas.equipScreen.isClose = false;
                CCanvas.equipScreen.show(CCanvas.menuScr);
             } else {
@@ -161,6 +185,128 @@ public class Inventory extends TabScreen {
          eS = (Equip)EquipScreen.inventory.elementAt(this.select2);
       }
       return eS;
+   }
+   public void showItemPopup(Equip e) {
+      if (e == null) {
+         return;
+      }
+      this.popupEquip = e;
+      this.isItemPopup = true;
+      this.isGemPicker = false;
+      this.isCombineNum = false;
+      this.popupButtonSelect = 0;
+   }
+   public void hideItemPopup() {
+      this.isItemPopup = false;
+      this.popupEquip = null;
+   }
+   public boolean isSocketGem(Equip e) {
+      return e != null && e.isMaterial && e.id >= 0 && e.id < 50 && e.num > 0;
+   }
+   public void showGemPicker(Equip e) {
+      this.socketEquip = e;
+      this.gemOptions.removeAllElements();
+      for(int i = 0; i < EquipScreen.inventory.size(); ++i) {
+         Equip item = (Equip)EquipScreen.inventory.elementAt(i);
+         if (this.isSocketGem(item)) {
+            this.gemOptions.addElement(item);
+         }
+      }
+      if (this.gemOptions.size() == 0) {
+         CCanvas.startOKDlg("Không có ngọc có thể ghép.");
+         return;
+      }
+      this.gemSelect = 0;
+      this.gemScroll = 0;
+      this.gemScrollTo = 0;
+      this.gemQuantityMode = false;
+      this.gemQuantity = 1;
+      this.isItemPopup = false;
+      this.isGemPicker = true;
+   }
+   public int getPopupButtonCount() {
+      return this.popupEquip != null && !this.popupEquip.isMaterial ? 3 : 2;
+   }
+   public void performSelectedPopupButton() {
+      if (this.popupEquip == null) {
+         return;
+      }
+      if (this.popupButtonSelect == 0) {
+         this.usePopupItem();
+      } else if (this.popupButtonSelect == 1) {
+         this.sellPopupItem();
+      } else if (!this.popupEquip.isMaterial) {
+         if (this.popupEquip.slot <= 0) {
+            CCanvas.startOKDlg("Trang bị đã hết slot ghép ngọc.");
+         } else {
+            this.showGemPicker(this.popupEquip);
+         }
+      }
+   }
+   public void confirmSelectedGem() {
+      if (!this.isGemPicker || this.socketEquip == null || this.gemSelect < 0 || this.gemSelect >= this.gemOptions.size()) {
+         return;
+      }
+      Equip gem = (Equip)this.gemOptions.elementAt(this.gemSelect);
+      this.requestSocketGem(this.socketEquip, gem, this.gemQuantity);
+      this.isGemPicker = false;
+      this.gemQuantityMode = false;
+   }
+   public void requestSocketGem(Equip equip, Equip gem, int num) {
+      if (equip == null || gem == null) {
+         return;
+      }
+      if (num <= 0) {
+         num = 1;
+      }
+      int[] ids = new int[]{equip.dbKey | 0x10000, gem.id};
+      byte[] nums = new byte[]{1, (byte)num};
+      GameService.gI().imbue((byte)0, (byte)2, ids, nums);
+   }
+   public int getMaxGemQuantity() {
+      if (this.socketEquip == null || this.gemSelect < 0 || this.gemSelect >= this.gemOptions.size()) {
+         return 1;
+      }
+      Equip gem = (Equip)this.gemOptions.elementAt(this.gemSelect);
+      int max = gem.num;
+      if (this.socketEquip.slot < max) {
+         max = this.socketEquip.slot;
+      }
+      return max <= 0 ? 1 : max;
+   }
+   public void startGemQuantityMode() {
+      this.gemQuantityMode = true;
+      this.gemQuantity = 1;
+      int max = this.getMaxGemQuantity();
+      if (this.gemQuantity > max) {
+         this.gemQuantity = max;
+      }
+   }
+   public void sellPopupItem() {
+      if (this.popupEquip == null) {
+         return;
+      }
+      Equip e = this.popupEquip;
+      this.unSelectEquip();
+      e.isSelect = true;
+      e.numSelected = 1;
+      this.doCombine();
+      this.hideItemPopup();
+   }
+   public void usePopupItem() {
+      if (this.popupEquip == null) {
+         return;
+      }
+      Equip e = this.popupEquip;
+      this.unSelectEquip();
+      if (e.isMaterial) {
+         e.isSelect = true;
+         e.numSelected = 1;
+         this.doCombine();
+      } else {
+         CCanvas.startOKDlg("Hãy vào màn Trang bị để mặc trang bị này.");
+      }
+      this.hideItemPopup();
    }
    public void unSelectEquip() {
       this.size = EquipScreen.inventory.size();
@@ -206,7 +352,7 @@ public class Inventory extends TabScreen {
                   this.isCombine = true;
                   ind[a] = e.id;
                } else {
-                  ind[a] = e.dbKey;
+                  ind[a] = e.dbKey | 0x10000;
                }
                numSl[a] = (byte)e.numSelected;
                ++a;
@@ -253,7 +399,97 @@ public class Inventory extends TabScreen {
       if (this.isCombineNum) {
          this.paintCombineSelect(this.combineSelect, CCanvas.width / 2, CCanvas.hieght / 2, g);
       }
+      if (this.isItemPopup) {
+         this.paintItemPopup(g);
+      }
+      if (this.isGemPicker) {
+         this.paintGemPicker(g);
+      }
       this.paintSuper(g);
+   }
+   public void paintItemPopup(mGraphics g) {
+      if (this.popupEquip == null) {
+         return;
+      }
+      int w = Math.min(CCanvas.width - 20, 196);
+      int h = 112;
+      int x = CCanvas.width / 2 - w / 2;
+      int y = CCanvas.hieght / 2 - h / 2;
+      paintDefaultPopup(x, y, w, h, g);
+      this.popupEquip.drawIcon(g, x + 18, y + 18, false);
+      Font.normalGFont.drawString(g, this.popupEquip.name, x + 34, y + 12, 0, false);
+      String detail = this.popupEquip.isMaterial ? this.popupEquip.strDetail : this.popupEquip.getStrInvDetail();
+      String[] lines = Font.normalFont.splitFontBStrInLine(detail == null ? "" : detail, w - 24);
+      int lineCount = Math.min(lines.length, 2);
+      for(int i = 0; i < lineCount; ++i) {
+         Font.normalFont.drawString(g, lines[i], x + 12, y + 38 + i * 14, 0, false);
+      }
+      int buttonY = y + h - 30;
+      int count = this.getPopupButtonCount();
+      int gap = 4;
+      int buttonW = (w - 24 - gap * (count - 1)) / count;
+      this.paintPopupButton(g, x + 12, buttonY, buttonW, 18, "Dùng", this.popupButtonSelect == 0);
+      this.paintPopupButton(g, x + 12 + buttonW + gap, buttonY, buttonW, 18, "Bán", this.popupButtonSelect == 1);
+      if (!this.popupEquip.isMaterial) {
+         this.paintPopupButton(g, x + 12 + (buttonW + gap) * 2, buttonY, buttonW, 18, "Ngọc", this.popupButtonSelect == 2);
+      }
+   }
+   public void paintPopupButton(mGraphics g, int x, int y, int w, int h, String text, boolean selected) {
+      g.setColor(selected ? 4819660 : 2378093);
+      g.fillRoundRect(x, y, w, h, 5, 5, false);
+      g.setColor(selected ? 16774532 : 6457531);
+      g.drawRect(x, y, w, h, false);
+      if (selected) {
+         Font.normalGFont.drawString(g, text, x + w / 2, y + 3, 2, false);
+      } else {
+         Font.normalYFont.drawString(g, text, x + w / 2, y + 3, 2, false);
+      }
+   }
+   public void paintGemPicker(mGraphics g) {
+      int w = Math.min(CCanvas.width - 16, 236);
+      int h = Math.min(CCanvas.hieght - 34, 184);
+      int x = CCanvas.width / 2 - w / 2;
+      int y = CCanvas.hieght / 2 - h / 2;
+      paintDefaultPopup(x, y, w, h, g);
+      Font.normalGFont.drawString(g, "Chọn ngọc ghép", CCanvas.width / 2, y + 10, 2, false);
+      if (this.socketEquip != null) {
+         Font.normalFont.drawString(g, this.socketEquip.name, CCanvas.width / 2, y + 25, 2, false);
+      }
+      int gridX = x + 14;
+      int gridY = y + 42;
+      int col = Math.max(1, (w - 30) / 32);
+      int visibleH = h - (this.gemQuantityMode ? 94 : 52);
+      int rows = (this.gemOptions.size() + col - 1) / col;
+      this.gemScrollLim = Math.max(0, rows * 32 - visibleH);
+      if (this.gemScrollTo > this.gemScrollLim) {
+         this.gemScrollTo = this.gemScrollLim;
+      }
+      g.setClip(gridX - 4, gridY - 4, w - 24, visibleH + 8);
+      g.translate(0, -this.gemScroll);
+      for(int i = 0; i < this.gemOptions.size(); ++i) {
+         Equip gem = (Equip)this.gemOptions.elementAt(i);
+         int gx = gridX + i % col * 32;
+         int gy = gridY + i / col * 32;
+         if (i == this.gemSelect) {
+            g.setColor(16767817);
+            g.fillRect(gx - 4, gy - 4, 24, 24, true);
+         }
+         gem.drawIcon(g, gx, gy, true);
+      }
+      g.translate(0, -g.getTranslateY());
+      g.setClip(0, 0, 1000, 1000);
+      if (this.gemQuantityMode && this.gemSelect >= 0 && this.gemSelect < this.gemOptions.size()) {
+         this.paintGemQuantity(g, x, y + h - 48, w);
+      }
+   }
+   public void paintGemQuantity(mGraphics g, int x, int y, int w) {
+      Equip gem = (Equip)this.gemOptions.elementAt(this.gemSelect);
+      g.setColor(2378093);
+      g.fillRoundRect(x + 10, y, w - 20, 38, 5, 5, false);
+      g.setColor(6457531);
+      g.drawRect(x + 10, y, w - 20, 38, false);
+      Font.normalGFont.drawString(g, gem.name, CCanvas.width / 2, y + 4, 2, false);
+      Font.normalYFont.drawString(g, "<  " + this.gemQuantity + "/" + this.getMaxGemQuantity() + "  >", CCanvas.width / 2, y + 20, 2, false);
    }
    public void paintMaterial(mGraphics g, int X, int Y) {
       int a = 0;
@@ -363,7 +599,14 @@ public class Inventory extends TabScreen {
       super.update();
       cmyILim = this.hLine * this.wTab - 110;
       this.itemCamera();
-      if (this.isCombineNum) {
+      if (this.isGemPicker && this.gemScroll != this.gemScrollTo) {
+         int dy = this.gemScrollTo - this.gemScroll << 2;
+         this.gemScroll += dy >> 4;
+         if (Math.abs(this.gemScrollTo - this.gemScroll) < 2) {
+            this.gemScroll = this.gemScrollTo;
+         }
+      }
+      if (this.isCombineNum || this.isItemPopup || this.isGemPicker) {
          this.left = null;
       } else {
          this.left = this.menu;
@@ -405,6 +648,23 @@ public class Inventory extends TabScreen {
    }
    public void onPointerDragged(int xDragged, int yDragged, int index) {
       super.onPointerDragged(xDragged, yDragged, index);
+      if (this.isGemPicker) {
+         if (!this.trans) {
+            this.pa = this.gemScroll;
+            this.trans = true;
+         }
+         this.gemScrollTo = this.pa + (CCanvas.pyFirst[index] - yDragged);
+         if (this.gemScrollTo < 0) {
+            this.gemScrollTo = 0;
+         }
+         if (this.gemScrollTo > this.gemScrollLim) {
+            this.gemScrollTo = this.gemScrollLim;
+         }
+         return;
+      }
+      if (this.isItemPopup) {
+         return;
+      }
       if (!CCanvas.isPointer(xDragged, yDragged, 150, 60, index)) {
          this.isCombineNum = false;
       }
@@ -424,6 +684,14 @@ public class Inventory extends TabScreen {
    }
    public void onPointerPressed(int xScreen, int yScreen, int index) {
       super.onPointerPressed(xScreen, yScreen, index);
+        if (this.isItemPopup) {
+            this.handleItemPopupKeys();
+            return;
+        }
+        if (this.isGemPicker) {
+            this.handleGemPickerKeys();
+            return;
+        }
         if (this.isCombineNum) {
             if (CCanvas.keyPressed[2] || CCanvas.keyPressed[4] || CCanvas.keyPressed[6] || CCanvas.keyPressed[8]) {
                 Equip e = this.getEquipSelect();
@@ -482,9 +750,102 @@ public class Inventory extends TabScreen {
             CScreen.clearKey();
        }
    }
+   public void handleItemPopupKeys() {
+      if (CCanvas.keyPressed[4] || CCanvas.keyPressed[2]) {
+         --this.popupButtonSelect;
+         if (this.popupButtonSelect < 0) {
+            this.popupButtonSelect = this.getPopupButtonCount() - 1;
+         }
+         CScreen.clearKey();
+      } else if (CCanvas.keyPressed[6] || CCanvas.keyPressed[8]) {
+         ++this.popupButtonSelect;
+         if (this.popupButtonSelect >= this.getPopupButtonCount()) {
+            this.popupButtonSelect = 0;
+         }
+         CScreen.clearKey();
+      } else if (CCanvas.keyPressed[5]) {
+         this.performSelectedPopupButton();
+         CScreen.clearKey();
+      }
+   }
+   public void handleGemPickerKeys() {
+      if (this.gemQuantityMode) {
+         if (CCanvas.keyPressed[4] || CCanvas.keyPressed[8]) {
+            --this.gemQuantity;
+            if (this.gemQuantity < 1) {
+               this.gemQuantity = 1;
+            }
+            CScreen.clearKey();
+         } else if (CCanvas.keyPressed[6] || CCanvas.keyPressed[2]) {
+            ++this.gemQuantity;
+            int max = this.getMaxGemQuantity();
+            if (this.gemQuantity > max) {
+               this.gemQuantity = max;
+            }
+            CScreen.clearKey();
+         } else if (CCanvas.keyPressed[5]) {
+            this.confirmSelectedGem();
+            CScreen.clearKey();
+         }
+         return;
+      }
+      int w = Math.min(CCanvas.width - 16, 236);
+      int col = Math.max(1, (w - 30) / 32);
+      int oldSelect = this.gemSelect;
+      if (CCanvas.keyPressed[4]) {
+         --this.gemSelect;
+      } else if (CCanvas.keyPressed[6]) {
+         ++this.gemSelect;
+      } else if (CCanvas.keyPressed[2]) {
+         this.gemSelect -= col;
+      } else if (CCanvas.keyPressed[8]) {
+         this.gemSelect += col;
+      } else if (CCanvas.keyPressed[5]) {
+         this.startGemQuantityMode();
+         CScreen.clearKey();
+         return;
+      } else {
+         return;
+      }
+      if (this.gemSelect < 0) {
+         this.gemSelect = this.gemOptions.size() - 1;
+      }
+      if (this.gemSelect >= this.gemOptions.size()) {
+         this.gemSelect = 0;
+      }
+      if (oldSelect != this.gemSelect) {
+         this.keepSelectedGemVisible(col);
+      }
+      CScreen.clearKey();
+   }
+   public void keepSelectedGemVisible(int col) {
+      int h = Math.min(CCanvas.hieght - 34, 184);
+      int visibleH = h - 52;
+      int rowY = this.gemSelect / col * 32;
+      if (rowY - this.gemScroll > visibleH - 32) {
+         this.gemScrollTo = rowY - visibleH + 32;
+      }
+      if (rowY < this.gemScroll) {
+         this.gemScrollTo = rowY;
+      }
+      if (this.gemScrollTo < 0) {
+         this.gemScrollTo = 0;
+      }
+      if (this.gemScrollTo > this.gemScrollLim) {
+         this.gemScrollTo = this.gemScrollLim;
+      }
+   }
    public void onPointerReleased(int xReleased, int yReleased, int index) {
       this.trans = false;
       super.onPointerReleased(xReleased, yReleased, index);
+      if (this.isItemPopup) {
+         this.onItemPopupReleased(xReleased, yReleased, index);
+         return;
+      }
+      if (this.isGemPicker) {
+         this.onGemPickerReleased(xReleased, yReleased, index);
+         return;
+      }
       if (!CCanvas.isPointer(xReleased, yReleased, 150, 60, index)) {
          this.isCombineNum = false;
       }
@@ -526,21 +887,95 @@ public class Inventory extends TabScreen {
             int paintY = this.yPaint + 29;
             if (CCanvas.isPointer(paintX, paintY, 160, 120, index)) {
                int aa = (cmtoYI + yReleased - paintY) / this.wTab * this.nLine + (xReleased - paintX - 8) / this.wTab;
-               if (aa == -1) {
+               if (aa < 0 || aa >= this.size) {
                   return;
                }
-               if (aa == this.select2 && this.center != null) {
-                  this.center.action.perform();
-               }
                this.select2 = aa;
-               if (this.select2 < 0) {
-                  this.select2 = 0;
-               }
-               if (this.select2 > this.size - 1) {
-                  this.select2 = this.size - 1;
-               }
                this.getDetail();
+               this.showItemPopup((Equip)EquipScreen.inventory.elementAt(this.select2));
             }
+         }
+      }
+   }
+   public void onItemPopupReleased(int xReleased, int yReleased, int index) {
+      if (this.popupEquip == null) {
+         this.hideItemPopup();
+         return;
+      }
+      int w = Math.min(CCanvas.width - 20, 196);
+      int h = 112;
+      int x = CCanvas.width / 2 - w / 2;
+      int y = CCanvas.hieght / 2 - h / 2;
+      int buttonY = y + h - 30;
+      int count = this.popupEquip.isMaterial ? 2 : 3;
+      int gap = 4;
+      int buttonW = (w - 24 - gap * (count - 1)) / count;
+      if (CCanvas.isPointer(x + 12, buttonY, buttonW, 18, index)) {
+         this.usePopupItem();
+         return;
+      }
+      if (CCanvas.isPointer(x + 12 + buttonW + gap, buttonY, buttonW, 18, index)) {
+         this.sellPopupItem();
+         return;
+      }
+      if (!this.popupEquip.isMaterial && CCanvas.isPointer(x + 12 + (buttonW + gap) * 2, buttonY, buttonW, 18, index)) {
+         if (this.popupEquip.slot <= 0) {
+            CCanvas.startOKDlg("Trang bị đã hết slot ghép ngọc.");
+         } else {
+            this.showGemPicker(this.popupEquip);
+         }
+         return;
+      }
+      if (!CCanvas.isPointer(x, y, w, h, index)) {
+         this.hideItemPopup();
+      }
+   }
+   public void onGemPickerReleased(int xReleased, int yReleased, int index) {
+      if (Math.abs(CCanvas.pyFirst[index] - yReleased) > 8) {
+         return;
+      }
+      int w = Math.min(CCanvas.width - 16, 236);
+      int h = Math.min(CCanvas.hieght - 34, 184);
+      int x = CCanvas.width / 2 - w / 2;
+      int y = CCanvas.hieght / 2 - h / 2;
+      if (!CCanvas.isPointer(x, y, w, h, index)) {
+         this.isGemPicker = false;
+         this.gemQuantityMode = false;
+         return;
+      }
+      if (this.gemQuantityMode) {
+         int qx = x + 10;
+         int qy = y + h - 48;
+         int qw = w - 20;
+         if (CCanvas.isPointer(qx, qy, qw / 3, 38, index)) {
+            --this.gemQuantity;
+            if (this.gemQuantity < 1) {
+               this.gemQuantity = 1;
+            }
+            return;
+         }
+         if (CCanvas.isPointer(qx + qw * 2 / 3, qy, qw / 3, 38, index)) {
+            ++this.gemQuantity;
+            int max = this.getMaxGemQuantity();
+            if (this.gemQuantity > max) {
+               this.gemQuantity = max;
+            }
+            return;
+         }
+         if (CCanvas.isPointer(qx + qw / 3, qy, qw / 3, 38, index)) {
+            this.confirmSelectedGem();
+            return;
+         }
+      }
+      int gridX = x + 14;
+      int gridY = y + 42;
+      int col = Math.max(1, (w - 30) / 32);
+      int visibleH = h - (this.gemQuantityMode ? 94 : 52);
+      if (CCanvas.isPointer(gridX - 4, gridY - 4, w - 24, visibleH + 8, index)) {
+         int aa = (this.gemScroll + yReleased - gridY) / 32 * col + (xReleased - gridX) / 32;
+         if (aa >= 0 && aa < this.gemOptions.size()) {
+            this.gemSelect = aa;
+            this.startGemQuantityMode();
          }
       }
    }
