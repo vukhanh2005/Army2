@@ -149,7 +149,7 @@ public class Inventory extends TabScreen {
                if (Inventory.this.gemQuantityMode) {
                   Inventory.this.gemQuantityMode = false;
                } else {
-                  Inventory.this.isGemPicker = false;
+                  Inventory.this.resetGemPickerState();
                }
             } else if (!Inventory.this.isCombineNum) {
                CCanvas.equipScreen.isClose = false;
@@ -190,9 +190,9 @@ public class Inventory extends TabScreen {
       if (e == null) {
          return;
       }
+      this.resetGemPickerState();
       this.popupEquip = e;
       this.isItemPopup = true;
-      this.isGemPicker = false;
       this.isCombineNum = false;
       this.popupButtonSelect = 0;
    }
@@ -202,6 +202,16 @@ public class Inventory extends TabScreen {
    }
    public boolean isSocketGem(Equip e) {
       return e != null && e.isMaterial && e.id >= 0 && e.id < 50 && e.num > 0;
+   }
+   public void resetGemPickerState() {
+      this.isGemPicker = false;
+      this.gemQuantityMode = false;
+      this.socketEquip = null;
+      this.gemOptions.removeAllElements();
+      this.gemSelect = 0;
+      this.gemScroll = 0;
+      this.gemScrollTo = 0;
+      this.gemQuantity = 1;
    }
    public void showGemPicker(Equip e) {
       this.socketEquip = e;
@@ -249,8 +259,7 @@ public class Inventory extends TabScreen {
       }
       Equip gem = (Equip)this.gemOptions.elementAt(this.gemSelect);
       this.requestSocketGem(this.socketEquip, gem, this.gemQuantity);
-      this.isGemPicker = false;
-      this.gemQuantityMode = false;
+      this.resetGemPickerState();
    }
    public void requestSocketGem(Equip equip, Equip gem, int num) {
       if (equip == null || gem == null) {
@@ -837,15 +846,17 @@ public class Inventory extends TabScreen {
    }
    public void onPointerReleased(int xReleased, int yReleased, int index) {
       this.trans = false;
-      super.onPointerReleased(xReleased, yReleased, index);
       if (this.isItemPopup) {
          this.onItemPopupReleased(xReleased, yReleased, index);
+         CScreen.clearKey();
          return;
       }
       if (this.isGemPicker) {
          this.onGemPickerReleased(xReleased, yReleased, index);
+         CScreen.clearKey();
          return;
       }
+      super.onPointerReleased(xReleased, yReleased, index);
       if (!CCanvas.isPointer(xReleased, yReleased, 150, 60, index)) {
          this.isCombineNum = false;
       }
@@ -898,6 +909,9 @@ public class Inventory extends TabScreen {
       }
    }
    public void onItemPopupReleased(int xReleased, int yReleased, int index) {
+      if (CCanvas.keyPressed[5] || CCanvas.keyPressed[12] || CCanvas.keyPressed[13]) {
+         return;
+      }
       if (this.popupEquip == null) {
          this.hideItemPopup();
          return;
@@ -931,6 +945,9 @@ public class Inventory extends TabScreen {
       }
    }
    public void onGemPickerReleased(int xReleased, int yReleased, int index) {
+      if (CCanvas.keyPressed[5] || CCanvas.keyPressed[12] || CCanvas.keyPressed[13]) {
+         return;
+      }
       if (Math.abs(CCanvas.pyFirst[index] - yReleased) > 8) {
          return;
       }

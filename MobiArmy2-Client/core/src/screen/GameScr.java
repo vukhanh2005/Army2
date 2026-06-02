@@ -825,6 +825,8 @@ public class GameScr extends CScreen {
                     PM.getCurPlayer().force = 0;
                     PM.getCurPlayer().force_2 = 0;
                     PM.getCurPlayer().forceSelectedBySlider = GameScr.aimAssistEnabled;
+                    CPlayer.isStopFire = false;
+                    CPlayer.isShooting = false;
                     PM.getCurPlayer().setState((byte) 0);
                     PM.getCurPlayer().checkAngleForSprite();
                     GameScr.this.isShowPausemenu = false;

@@ -1178,6 +1178,10 @@ public class CPlayer {
                     this.isSecondPower = false;
                     this.isDoublePower = Bullet.isDoubleBull(Bullet.setBulletType(this.gun));
                     this.forceSelectedBySlider = GameScr.aimAssistEnabled;
+                    if (this.index == GameScr.myIndex) {
+                        isStopFire = false;
+                        isShooting = false;
+                    }
                     this.isPaint = true;
                     new Explosion(this.x, this.y - 12, (byte) 5, this.index, (byte) 38);
             }

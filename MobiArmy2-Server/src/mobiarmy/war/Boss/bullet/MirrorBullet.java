@@ -21,33 +21,39 @@ public class MirrorBullet extends Bullet {
         } else if(super.vy >= 0) {
             this.frames.add(new Bullet.Frame(this.frame, this.bX, this.bY, this.bX - this.xOld, this.bY - this.yOld));
             int ang = GameData.getArg(super.lastX - super.frames.get(0).fX, super.frames.get(0).fY - super.lastY);
-            int vx0 = super.vx = (gun.force * GameData.cos(ang) >> 10);
-            int vy0 = super.vy = (gun.force * GameData.sin(ang) >> 10);
+            super.vx = (gun.force * GameData.cos(ang) >> 10);
+            super.vy = (gun.force * GameData.sin(ang) >> 10);
             if (super.vx != 0) {
                 while (Math.abs(super.vx) < 15) {
                     super.vx += super.vx;
                     super.vy += super.vy;
                 }
             }
+            int vx0 = super.vx;
+            int vy0 = super.vy;
+            boolean hit = false;
             while(true) {
                 if((super.bX < -100) || (super.bX > super.gun.mapData.width + 100) || (super.bY > super.gun.mapData.height + 100)) {
                     break;
                 }
-                int[] collision = super.getCollision(super.xOld, super.yOld, super.bX, super.bY);
+                int nextX = super.bX + super.vx;
+                int nextY = super.bY + super.vy;
+                int[] collision = super.getCollision(super.bX, super.bY, nextX, nextY);
                 if(collision != null) {
                     super.bX = collision[0];
                     super.bY = collision[1];
+                    hit = true;
                     break;
                 } else {
                     this.xOld = this.bX;
                     this.yOld = this.bY;
-                    this.lastX = this.bX = this.bX + this.vx;
-                    this.lastY = this.bY = this.bY + this.vy;
+                    this.lastX = this.bX = nextX;
+                    this.lastY = this.bY = nextY;
                 }
             }
             super.frames.add(new Bullet.Frame(super.frame, super.bX, super.bY, vx0, -vy0));
             super.collect = true;
-            if(super.isCanCollision) {
+            if(hit && super.isCanCollision) {
                 super.collision();
             }
         }
