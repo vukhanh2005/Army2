@@ -785,6 +785,7 @@ public class MessageHandler implements IMessageHandler {
                         byte itemGun = msg.reader().readByte();
                         if (userID1 == TerrainMidlet.myInfo.IDDB) {
                             TerrainMidlet.myInfo.gun = itemGun;
+                            this.clearCurrentEquipDbKeys();
                         }
                         if (CCanvas.curScr == CCanvas.changePScr) {
                             CCanvas.changePScr.onChangeGun();
@@ -2465,6 +2466,15 @@ public class MessageHandler implements IMessageHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void clearCurrentEquipDbKeys() {
+        if (TerrainMidlet.myInfo == null) {
+            return;
+        }
+        for (int i = 0; i < TerrainMidlet.myInfo.dbKey.length; i++) {
+            TerrainMidlet.myInfo.dbKey[i] = -1;
         }
     }
 }

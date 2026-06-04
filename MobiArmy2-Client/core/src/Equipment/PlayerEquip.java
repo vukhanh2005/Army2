@@ -18,6 +18,9 @@ public class PlayerEquip {
     public PlayerEquip() {
     }
     public PlayerEquip(short[][] equip) {
+        if (equip != null && equip.length > 0 && equip[0] != null && equip[0].length > 0) {
+            this.glass = (byte)equip[0][0];
+        }
         this.equips[0] = createEquip((byte) equip[0][0], (byte) equip[0][1], equip[0][2]);
         this.equips[1] = createEquip((byte) equip[1][0], (byte) equip[1][1], equip[1][2]);
         this.equips[2] = createEquip((byte) equip[2][0], (byte) equip[2][1], equip[2][2]);
@@ -114,11 +117,17 @@ public class PlayerEquip {
         }
     }
     public void paintFace(int x, int y, int look, int frame, mGraphics g) {
-        this.paintFace(x, y, look, frame, g, this.equips[0].glass);
+        this.paintFace(x, y, look, frame, g, this.glass);
     }
     public void paintFace(int x, int y, int look, int frame, mGraphics g, int glass) {
         mImage img = null;
+        if (glass < 0 || glass >= CPlayer.pImg.length) {
+            return;
+        }
         img = CPlayer.pImg[glass];
+        if (img == null || img.image == null) {
+            return;
+        }
         int W = 0;
         int H = 0;
         W = img.image.getWidth();
@@ -126,7 +135,7 @@ public class PlayerEquip {
         g.drawRegion(img, 0, frame * H, W, H, look, x, y, mGraphics.BOTTOM | mGraphics.HCENTER, false);
     }
     public void paint(mGraphics g, int look, int frame, int x, int y) {
-        this.paint(g, look, frame, x, y, this.equips[0].glass);
+        this.paint(g, look, frame, x, y, this.glass);
     }
     public void paint(mGraphics g, int look, int frame, int x, int y, int glass) {
         this.paintSung(x, y, look, frame, g);

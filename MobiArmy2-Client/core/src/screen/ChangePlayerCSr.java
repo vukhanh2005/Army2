@@ -252,7 +252,9 @@ public class ChangePlayerCSr extends CScreen {
     }
     private void drawMenuIcon(int y, mGraphics g) {
         for (int i = 0; i < this.nMainIcon; ++i) {
-            this.equip[i].paint(g, 0, 0, this._iconX[i], y);
+            if (this.equip[i] != null) {
+                this.equip[i].paint(g, 0, 0, this._iconX[i], y, i);
+            }
             if (isUnlock[i] == 0) {
                 g.drawImage(lockImg, this._iconX[i], y + 5, mGraphics.TOP | mGraphics.HCENTER, false);
                 if (curMenu == i) {

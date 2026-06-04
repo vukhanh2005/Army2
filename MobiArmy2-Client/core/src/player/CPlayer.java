@@ -1840,6 +1840,9 @@ public class CPlayer {
             if (pEquip != null) {
                 pEquip.paint(g, Look, FRAME, X, Y, GunType);
             } else {
+                if (GunType < 0 || GunType >= pImg.length || pImg[GunType] == null || pImg[GunType].image == null) {
+                    return;
+                }
                 g.drawRegion(pImg[GunType], 0, FRAME * frameH, pImg[GunType].image.getWidth(), frameH, Look, X, Y, mGraphics.BOTTOM | mGraphics.HCENTER, false);
             }
         }

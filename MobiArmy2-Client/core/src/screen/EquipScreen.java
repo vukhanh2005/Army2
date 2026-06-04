@@ -496,6 +496,9 @@ public class EquipScreen extends TabScreen {
             if (inv == null || inv.isMaterial) {
                continue;
             }
+            if (inv.glass != m.gun) {
+               continue;
+            }
 
             if (m.myEquip.equips[inv.type] == null) {
                m.myEquip.equips[inv.type] = PlayerEquip.getEquip(inv.glass, inv.type, inv.id);
