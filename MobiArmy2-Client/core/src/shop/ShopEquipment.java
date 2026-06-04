@@ -103,20 +103,28 @@ public class ShopEquipment extends TabScreen {
    public void getCommand() {
       final Command xu = new Command(Language.muaXu(), new IAction() {
          public void perform() {
-            CCanvas.startYesNoDlg(Language.bancochac() + ShopEquipment.this.eSelect.xu + Language.xu(), new IAction() {
+            final Equip curr = ShopEquipment.this.getCurrEq();
+            if (curr == null) {
+               return;
+            }
+            CCanvas.startYesNoDlg(Language.bancochac() + curr.xu + Language.xu(), new IAction() {
                public void perform() {
                   CCanvas.startOKDlg(Language.pleaseWait());
-                  GameService.gI().buy_sell_Equip((byte)0, (int[])null, (short)ShopEquipment.this.getCurrEq().index, (byte)0);
+                  GameService.gI().buy_sell_Equip((byte)0, (int[])null, (short)curr.index, (byte)0);
                }
             });
          }
       });
       final Command luong = new Command(Language.muaLuong(), new IAction() {
          public void perform() {
-            CCanvas.startYesNoDlg(Language.bancochac() + ShopEquipment.this.eSelect.luong + Language.luong(), new IAction() {
+            final Equip curr = ShopEquipment.this.getCurrEq();
+            if (curr == null) {
+               return;
+            }
+            CCanvas.startYesNoDlg(Language.bancochac() + curr.luong + Language.luong(), new IAction() {
                public void perform() {
                   CCanvas.startOKDlg(Language.pleaseWait());
-                  GameService.gI().buy_sell_Equip((byte)0, (int[])null, (short)ShopEquipment.this.getCurrEq().index, (byte)1);
+                  GameService.gI().buy_sell_Equip((byte)0, (int[])null, (short)curr.index, (byte)1);
                }
             });
          }
@@ -171,6 +179,9 @@ public class ShopEquipment extends TabScreen {
       this.isClose = true;
    }
    public Equip getCurrEq() {
+      if (this.myShop.size() == 0 || this.select < 0 || this.select >= this.myShop.size()) {
+         return null;
+      }
       Equip e = (Equip)this.myShop.elementAt(this.select);
       return e;
    }
@@ -189,6 +200,14 @@ public class ShopEquipment extends TabScreen {
       this.items = item;
       this.getMyShop();
       this.size = this.myShop.size();
+      if (this.size == 0) {
+         this.eSelect = null;
+         this.equipDetail = "";
+         this.equipName = "";
+         this.price = "";
+         this.getCommand();
+         return;
+      }
       this.hLine = this.myShop.size() / this.nLine;
       if (this.myShop.size() % this.nLine != 0) {
          ++this.hLine;
@@ -236,6 +255,9 @@ public class ShopEquipment extends TabScreen {
       g.translate(0, -g.getTranslateY());
    }
    public void paintDetail(mGraphics g, int X, int Y) {
+      if (this.eSelect == null) {
+         return;
+      }
       PlayerInfo m = TerrainMidlet.myInfo;
       String myMoney = Language.money() + ": " + m.xu + Language.xu() + " - " + m.luong + Language.luong();
       int bb = Font.normalFont.getWidth(this.equipDetail);
@@ -249,7 +271,7 @@ public class ShopEquipment extends TabScreen {
       g.fillRoundRect(X, Y + 54, 170, 16, 6, 6, false);
       Font.normalGFont.drawString(g, this.equipName, X + 6, Y + 15, 0);
       Font.normalYFont.drawString(g, this.price, X + 6 + dd, Y + 35, 0);
-      if (this.eSelect != null || this.eSelect.shopDetailNunStrs != null) {
+      if (this.eSelect.shopDetailNunStrs != null && this.eSelect.shopDetailNunStrs.size() > 0) {
          this.xExpand = X + 6 + cc + 100 + 50;
          this.yExpand = Y + 55;
          if (this.expandDetail) {
@@ -275,6 +297,14 @@ public class ShopEquipment extends TabScreen {
       }
    }
    public void getDetail() {
+      if (this.myShop.size() == 0) {
+         this.eSelect = null;
+         this.equipDetail = "";
+         this.equipName = "";
+         this.price = "";
+         this.getCommand();
+         return;
+      }
       if (this.select < this.size) {
          this.eSelect = (Equip)this.myShop.elementAt(this.select);
          this.equipDetail = this.eSelect.getStrShopDetail();

@@ -126,6 +126,9 @@ public class SessionManager {
                     equip.isUse = row.getBoolean("isUse");
                     equip.date = row.containsKey("date") ? row.getByte("date") : ShopEquipment.SHOP_EQUIP_DATE;
                     equip.renewalDate = row.getLong("renewalDate");
+                    if (equip.isLegacyForged()) {
+                        equip.markForged();
+                    }
                     user.equips.add(equip);
                 }
             }

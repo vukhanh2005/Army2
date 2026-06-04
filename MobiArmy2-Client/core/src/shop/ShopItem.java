@@ -146,6 +146,15 @@ public class ShopItem extends TabScreen {
    public static Item getI(int elementAt) {
       return (Item)sellItem.elementAt(elementAt);
    }
+   public static Item getItemByType(int type) {
+      for(int i = 0; i < sellItem.size(); ++i) {
+         Item item = getI(i);
+         if (item.type == type) {
+            return item;
+         }
+      }
+      return null;
+   }
    public static Item getCurI() {
       return (Item)sellItem.elementAt(ItemIcon.select);
    }
@@ -208,13 +217,17 @@ public class ShopItem extends TabScreen {
    }
    public void buyAChooseItem(byte money, byte itemID, byte numBuy) {
       checkTongTien(itemID, numBuy);
-      Item current = getI(itemID);
+      Item current = getItemByType(itemID);
+      if (current == null || numBuy <= 0) {
+         CCanvas.startOKDlg(Language.empty());
+         return;
+      }
       int price = money == 1 ? current.price2 : current.price;
       int playerMoney = money == 1 ? TerrainMidlet.myInfo.luong : TerrainMidlet.myInfo.xu;
       if (price != -1 && price * numBuy <= playerMoney) {
-         Item var10000 = getCurI();
+         Item var10000 = current;
          var10000.numToBuy += numBuy;
-         var10000 = getCurI();
+         var10000 = current;
          var10000.num += numBuy;
          if (tongTien > 0 && this.n > 0) {
             GameService.gI().requestBuyItem(money, itemID, numBuy);
@@ -232,16 +245,16 @@ public class ShopItem extends TabScreen {
       tongTien = 0;
       for(int i = 0; i < sellItem.size(); ++i) {
          int cur;
-         if (i == curidChoose) {
+         if (i == curidChoose || getI(i).type == curidChoose) {
             cur = numCurChoose * getI(i).price;
-            if (cur == -1) {
+            if (getI(i).price == -1) {
                cur = numCurChoose * getI(i).price2;
             }
             tongTien += cur;
          } else if (getI(i).numToBuy > 0) {
             cur = getI(i).numToBuy * getI(i).price;
-            if (cur == -1) {
-               cur = numCurChoose * getI(i).price2;
+            if (getI(i).price == -1) {
+               cur = getI(i).numToBuy * getI(i).price2;
             }
             tongTien += cur;
          }
@@ -310,7 +323,10 @@ public class ShopItem extends TabScreen {
    }
    public static void receiveAItemBuy(byte n, byte[] itemID, byte[] nAfterBuy, int moneyAfterBuy, int moneyAfterBuy2) {
       for(int i = 0; i < n; ++i) {
-         getI(itemID[i]).num = nAfterBuy[i];
+         Item item = getItemByType(itemID[i]);
+         if (item != null) {
+            item.num = nAfterBuy[i];
+         }
       }
       TerrainMidlet.myInfo.xu = moneyAfterBuy;
       TerrainMidlet.myInfo.luong = moneyAfterBuy2;

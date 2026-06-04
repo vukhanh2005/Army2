@@ -30,13 +30,34 @@ public class Equip {
     public boolean isUse;
     public long renewalDate;
     public boolean isForged() {
-        return (this.level2 & 0x80) != 0;
+        return (this.level2 & 0x80) != 0 || this.isLegacyForged();
     }
     public void markForged() {
         this.level2 = (byte) (this.level2 | 0x80);
     }
     public int encodedLevel2() {
-        return this.level2 & 0xFF;
+        int value = this.level2 & 0x7F;
+        if (this.isForged()) {
+            value |= 0x80;
+        }
+        return value;
+    }
+    public boolean isLegacyForged() {
+        if (this.dbKey <= 0 || this.inv_ability == null || this.inv_percen == null) {
+            return false;
+        }
+        Equip base = Equip.get(this.glassID, this.id, this.type);
+        if (base == null || base == this || base.inv_ability == null || base.inv_percen == null) {
+            return false;
+        }
+        for (int i = 0; i < 5; i++) {
+            int abilityDelta = this.inv_ability[i] - base.inv_ability[i];
+            int percentDelta = this.inv_percen[i] - base.inv_percen[i];
+            if (abilityDelta < 15 || percentDelta < 8) {
+                return false;
+            }
+        }
+        return true;
     }
     public Equip() {
         this.slot = new short[]{-1, -1, -1};

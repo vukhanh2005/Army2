@@ -442,25 +442,31 @@ public class Bullet {
     public void paintLazerGirl(mGraphics g) {
         int color = GameScr.bm.critical == 1 ? 718162 : this.color;
         if (!this.isMirror) {
-            this.xLaser1 += dXLaser;
-            this.yLaser1 += dYLaser;
-            GameScr.cam.setTargetPointMode(this.xPaint[0] + this.xLaser1, this.yPaint[0] + this.yLaser1);
-            if (this.yPaint[0] + this.yLaser1 < this.yLG) {
-                this.yLaser1 = this.yLG - this.yPaint[0];
-                this.xLaser1 = this.xLG - this.xPaint[0];
+            int[] next = this.stepMirrorLaser(this.xPaint[0] + this.xLaser1, this.yPaint[0] + this.yLaser1, this.xLG, this.yLG);
+            this.xLaser1 = next[0] - this.xPaint[0];
+            this.yLaser1 = next[1] - this.yPaint[0];
+            GameScr.cam.setTargetPointMode(next[0], next[1]);
+            if (next[0] == this.xLG && next[1] == this.yLG) {
                 this.isMirror = true;
             }
         } else {
-            GameScr.cam.setTargetPointMode(this.xLG + this.xLaser2, this.yLG - this.yLaser2);
-            if (this.yLG - this.yLaser2 >= this.yPaint[this.yPaint.length - 1]) {
-                this.x = this.xPaint[this.xPaint.length - 1];
-                this.y = this.yPaint[this.yPaint.length - 1];
-                this.explode(2);
-            }
+            int targetX = this.xPaint[this.xPaint.length - 1];
+            int targetY = this.yPaint[this.yPaint.length - 1];
+            int laserX = this.xLG + this.xLaser2;
+            int laserY = this.yLG - this.yLaser2;
             if (mSystem.currentTimeMillis() - this.timeDelayPaint > 20L) {
-                this.xLaser2 += dXLaser;
-                this.yLaser2 += dYLaser;
+                int[] next = this.stepMirrorLaser(laserX, laserY, targetX, targetY);
+                this.xLaser2 = next[0] - this.xLG;
+                this.yLaser2 = this.yLG - next[1];
+                laserX = next[0];
+                laserY = next[1];
                 this.timeDelayPaint = mSystem.currentTimeMillis() + 20L;
+            }
+            GameScr.cam.setTargetPointMode(laserX, laserY);
+            if (laserX == targetX && laserY == targetY) {
+                this.x = targetX;
+                this.y = targetY;
+                this.explode(2);
             }
         }
         if (GameScr.curGRAPHIC_LEVEL != 2) {
@@ -487,6 +493,15 @@ public class Bullet {
             g.setColor(color);
             g.drawLine(this.xLG, this.yLG, this.xLG + this.xLaser2, this.yLG - this.yLaser2, true);
         }
+    }
+    private int[] stepMirrorLaser(int fromX, int fromY, int targetX, int targetY) {
+        int dx = targetX - fromX;
+        int dy = targetY - fromY;
+        int max = Math.max(Math.abs(dx), Math.abs(dy));
+        if (max <= 18) {
+            return new int[]{targetX, targetY};
+        }
+        return new int[]{fromX + dx * 18 / max, fromY + dy * 18 / max};
     }
     public static short min(short[] array) {
         short min = array[0];

@@ -623,6 +623,10 @@ public class MessageHandler implements IMessageHandler {
                         byte critical = msg.reader().readByte();
                         byte whoFire = msg.reader().readByte();
                         byte type = msg.reader().readByte();
+                        if (type == 49) {
+                            Bullet.dXLaser = 0;
+                            Bullet.dYLaser = 0;
+                        }
                         short xS = msg.reader().readShort();
                         short yS = msg.reader().readShort();
                         short angle = msg.reader().readShort();
@@ -784,6 +788,9 @@ public class MessageHandler implements IMessageHandler {
                         }
                         if (CCanvas.curScr == CCanvas.changePScr) {
                             CCanvas.changePScr.onChangeGun();
+                        }
+                        if (userID1 == TerrainMidlet.myInfo.IDDB) {
+                            this.refreshCurrentCharacterEquip();
                         }
                         CCanvas.endDlg();
                         break;
@@ -2071,11 +2078,13 @@ public class MessageHandler implements IMessageHandler {
                         int i = 0;
                         while (i < 5) {
                             int currDbKey = msg.reader().readInt();
+                            TerrainMidlet.myInfo.dbKey[i] = currDbKey;
                             if (TerrainMidlet.myInfo.myEquip.equips[i] != null) {
                                 TerrainMidlet.myInfo.myEquip.equips[i].dbKey = currDbKey;
                             }
                             ++i;
                         }
+                        this.refreshCurrentCharacterEquip();
                         break;
                     }
                     case -10: {
@@ -2430,5 +2439,32 @@ public class MessageHandler implements IMessageHandler {
     }
     public void setGameLogicHandler(IGameLogicHandler gameLogicHandler) {
         this.gameLogicHandler = gameLogicHandler;
+    }
+
+    private void refreshCurrentCharacterEquip() {
+        try {
+            if (TerrainMidlet.myInfo == null) {
+                return;
+            }
+            TerrainMidlet.myInfo.getMyEquip(16);
+            if (TerrainMidlet.isVip[TerrainMidlet.myInfo.gun]) {
+                TerrainMidlet.myInfo.getVipEquip();
+            }
+            if (CCanvas.equipScreen != null) {
+                CCanvas.equipScreen.getMyEquip();
+                CCanvas.equipScreen.syncEquippedItemsFromInventory();
+                CCanvas.equipScreen.setCurrEquip();
+                CCanvas.equipScreen.getBaseAttribute();
+                CCanvas.equipScreen.getDetail();
+                CCanvas.equipScreen.seeNextAttribute();
+            } else {
+                TerrainMidlet.myInfo.setAllEquipEffect();
+            }
+            if (CCanvas.changePScr != null) {
+                CCanvas.changePScr.getCurrEquip();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

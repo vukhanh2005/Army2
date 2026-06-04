@@ -114,7 +114,11 @@ public class ShopLinhTinh extends TabScreen {
       Command menuLeft = new Command("Menu", new IAction() {
          public void perform() {
             Vector<Command> menu = new Vector();
-            if (ShopLinhTinh.this.getCurrEq().strDetail.startsWith(Language.fomula())) {
+            Equip curr = ShopLinhTinh.this.getCurrEq();
+            if (curr == null) {
+               return;
+            }
+            if (curr.strDetail != null && curr.strDetail.startsWith(Language.fomula())) {
                menu.addElement(new Command(Language.detail(), new IAction() {
                   public void perform() {
                      GameService.gI().getFomula((byte)ShopLinhTinh.this.getCurrEq().id, (byte)1, (byte)-1);
@@ -176,6 +180,9 @@ public class ShopLinhTinh extends TabScreen {
       this.isClose = true;
    }
    public Equip getCurrEq() {
+      if (this.myShop.size() == 0 || this.select < 0 || this.select >= this.myShop.size()) {
+         return null;
+      }
       Equip e = (Equip)this.myShop.elementAt(this.select);
       return e;
    }
@@ -207,6 +214,14 @@ public class ShopLinhTinh extends TabScreen {
          ++hLine;
       }
       cmyILim = hLine * wTab - 70;
+      if (this.size == 0) {
+         this.eSelect = null;
+         this.equipDetail = "";
+         this.equipName = "";
+         this.price = "";
+         this.getCommand();
+         return;
+      }
       this.eSelect = (Equip)this.myShop.elementAt(this.select);
       this.equipDetail = this.eSelect.strDetail;
       this.equipName = this.eSelect.name;
@@ -282,6 +297,9 @@ public class ShopLinhTinh extends TabScreen {
       g.drawRegion(PrepareScr.imgReady[3], 0, 0, 13, 11, 7, x + 30 - CCanvas.gameTick % 3, y + 20 - 15, 0, false);
    }
    public void paintDetail(mGraphics g, int X, int Y) {
+      if (this.eSelect == null) {
+         return;
+      }
       PlayerInfo m = TerrainMidlet.myInfo;
       String myMoney = Language.money() + ": " + m.xu + Language.xu() + "-" + m.luong + Language.luong();
       int bb = Font.normalFont.getWidth(this.equipDetail);
@@ -352,6 +370,14 @@ public class ShopLinhTinh extends TabScreen {
       itemCamera();
    }
    public void getDetail() {
+      if (this.myShop.size() == 0) {
+         this.eSelect = null;
+         this.equipDetail = "";
+         this.equipName = "";
+         this.price = "";
+         this.getCommand();
+         return;
+      }
       this.num = 1;
       for(int i = 0; i < this.myShop.size(); ++i) {
          ((Equip)this.myShop.elementAt(i)).numSelected = 0;
@@ -458,7 +484,7 @@ public class ShopLinhTinh extends TabScreen {
             this.left.action.perform();
          }
       }
-      if (aa > 0 && aa < this.myShop.size()) {
+      if (aa >= 0 && aa < this.myShop.size()) {
          this.select = aa;
          this.getDetail();
       }
