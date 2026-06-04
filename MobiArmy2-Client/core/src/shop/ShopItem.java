@@ -30,6 +30,8 @@ public class ShopItem extends TabScreen {
    final int XU = 0;
    final int LUONG = 0;
    String giaText;
+   private int holdAdjustDelay;
+   private int holdAdjustStep;
    public void show(CScreen lastScreen) {
       super.show(lastScreen);
       this.xPaint = CScreen.w - ItemIcon.shopW >> 1;
@@ -164,6 +166,41 @@ public class ShopItem extends TabScreen {
    }
    public void update() {
       super.update();
+      if (this.isChooseAItem && getCurI().type != 36 && getCurI().type != 37) {
+         int delta = 0;
+         if (CCanvas.keyHold[4] || CCanvas.keyHold[8]) {
+            delta = -getCurI().nCurBuyPackage;
+         } else if (CCanvas.keyHold[6] || CCanvas.keyHold[2]) {
+            delta = getCurI().nCurBuyPackage;
+         } else {
+            int x = CScreen.w - 140 >> 1;
+            int y = CScreen.h - 80 >> 1;
+            for (int i = 0; i < CCanvas.isPointerDown.length; i++) {
+               if (CCanvas.isPointerDown[i]) {
+                  if (CCanvas.pX[i] >= x + 45 && CCanvas.pX[i] <= x + 85 && CCanvas.pY[i] >= y + 27 && CCanvas.pY[i] <= y + 67) {
+                     delta = -getCurI().nCurBuyPackage;
+                     break;
+                  }
+                  if (CCanvas.pX[i] >= x + 115 && CCanvas.pX[i] <= x + 155 && CCanvas.pY[i] >= y + 27 && CCanvas.pY[i] <= y + 67) {
+                     delta = getCurI().nCurBuyPackage;
+                     break;
+                  }
+               }
+            }
+         }
+         if (delta != 0) {
+            if (this.holdAdjustStep == delta && this.isHoldAdjustReady()) {
+               this.adjustBuyNum(delta);
+            } else if (this.holdAdjustStep != delta) {
+               this.holdAdjustStep = delta;
+               this.holdAdjustDelay = 0;
+            }
+         } else {
+            this.resetHoldAdjust();
+         }
+      } else {
+         this.resetHoldAdjust();
+      }
    }
    public void mainLoop() {
       super.mainLoop();
@@ -330,6 +367,27 @@ public class ShopItem extends TabScreen {
       Font.normalFont.drawString(g, (getI(Select).price != -1 ? numItemMua * getI(Select).price + Language.xu() : "") + (getI(Select).price2 != -1 ? (getI(Select).price != -1 ? "/" : "") + numItemMua * getI(Select).price2 + " luong" : ""), CCanvas.hw, y + 52, 2);
       g.drawRegion(PrepareScr.imgReady[3], 0, 0, 13, 11, 4, x + 45 + CCanvas.gameTick % 3, y + 27, 0, false);
       g.drawRegion(PrepareScr.imgReady[3], 0, 0, 13, 11, 7, x + 115 - CCanvas.gameTick % 3, y + 27, 0, false);
+   }
+   private void adjustBuyNum(int delta) {
+      numItemMua += delta;
+      int min = getCurI().nCurBuyPackage;
+      int max = 99 - getCurI().num;
+      if (numItemMua < min) {
+         numItemMua = min;
+      }
+      if (numItemMua > max) {
+         numItemMua = max;
+      }
+      checkTongTien(ItemIcon.select, numItemMua);
+   }
+   private boolean isHoldAdjustReady() {
+      ++this.holdAdjustDelay;
+      int interval = this.holdAdjustDelay < 12 ? 5 : 2;
+      return this.holdAdjustDelay == 1 || this.holdAdjustDelay % interval == 0;
+   }
+   private void resetHoldAdjust() {
+      this.holdAdjustDelay = 0;
+      this.holdAdjustStep = 0;
    }
    public void onPointerPressed(int x, int y2, int index) {
       super.onPointerPressed(x, y2, index);

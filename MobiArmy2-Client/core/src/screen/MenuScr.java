@@ -156,6 +156,7 @@ public class MenuScr extends CScreen {
       this.activeCroll(curMenuLevel, curMenuSelect);
       this.createIAction();
       TerrainMidlet.myInfo.getMyEquip(10);
+      CCanvas.equipScreen.syncEquippedItemsFromInventory();
       if (TerrainMidlet.isVip[TerrainMidlet.myInfo.gun]) {
          TerrainMidlet.myInfo.getVipEquip();
       }
@@ -200,6 +201,7 @@ public class MenuScr extends CScreen {
       LoginScr.isLoadData = true;
       CRes.err("===================> show MenuScr");
       TerrainMidlet.myInfo.getMyEquip(15);
+      CCanvas.equipScreen.syncEquippedItemsFromInventory();
       TerrainMidlet.myInfo.getVipEquip();
       this.showMainMenu(false);
    }

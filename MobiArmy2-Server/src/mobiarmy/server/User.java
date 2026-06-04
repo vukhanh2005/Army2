@@ -1,8 +1,10 @@
 package mobiarmy.server;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import mobiarmy.Util;
+import mobiarmy.io.Message;
 import static mobiarmy.server.Text.__;
 import mobiarmy.war.RoomInfo;
 import mobiarmy.war.RoomWait;
@@ -373,6 +375,195 @@ public class User {
                 this.session.sessionHandler.log(__("Bạn không đủ tiền để mua vật phẩm"));
             }
         }
+    }
+    private static final int MATERIAL_NHOM = 62;
+    private static final int MATERIAL_BAC = 65;
+    private static final int MATERIAL_VANG = 66;
+    private static final int GEM_LUC_BAO_CAP_6 = 5;
+    private static final int GEM_HONG_NGOC_CAP_6 = 15;
+    private static final int GEM_HOANG_NGOC_CAP_6 = 35;
+    private static final int GEM_THACH_ANH_TIM_CAP_6 = 45;
+
+    private static final class GoldFormulaRecipe {
+        final byte formulaId;
+        final byte equipType;
+        final int gemId;
+
+        GoldFormulaRecipe(int formulaId, int equipType, int gemId) {
+            this.formulaId = (byte) formulaId;
+            this.equipType = (byte) equipType;
+            this.gemId = gemId;
+        }
+    }
+
+    private GoldFormulaRecipe getGoldFormulaRecipe(int formulaId) {
+        return switch (formulaId) {
+            case 69 -> new GoldFormulaRecipe(69, 0, GEM_HOANG_NGOC_CAP_6);
+            case 70 -> new GoldFormulaRecipe(70, 1, GEM_THACH_ANH_TIM_CAP_6);
+            case 71 -> new GoldFormulaRecipe(71, 2, GEM_LUC_BAO_CAP_6);
+            case 72 -> new GoldFormulaRecipe(72, 3, GEM_HONG_NGOC_CAP_6);
+            case 73 -> new GoldFormulaRecipe(73, 4, GEM_HOANG_NGOC_CAP_6);
+            default -> null;
+        };
+    }
+
+    private ArrayList<Equip> getGoldFormulaEquips(GoldFormulaRecipe recipe) {
+        ArrayList<Equip> result = new ArrayList<>();
+        if (recipe == null || this.glass() == null) {
+            return result;
+        }
+        HashMap<Byte, ArrayList<Equip>> byType = Equip.equipsByGlassIDAndType.get(this.glass().id);
+        if (byType == null) {
+            return result;
+        }
+        ArrayList<Equip> entries = byType.get(recipe.equipType);
+        if (entries == null) {
+            return result;
+        }
+        for (Equip equip : entries) {
+            if (equip != null && equip.name != null && equip.name.toLowerCase().contains("vàng")) {
+                result.add(equip);
+            }
+        }
+        return result;
+    }
+
+    private Equip findOwnedEquip(Equip template, boolean requireUnforged) {
+        if (template == null) {
+            return null;
+        }
+        for (Equip equip : this.equips) {
+            if (equip.glassID == template.glassID && equip.type == template.type && equip.id == template.id && equip.date() > 0
+                    && (!requireUnforged || !equip.isForged())) {
+                return equip;
+            }
+        }
+        return null;
+    }
+
+    private int getLinhTinhCount(int id) {
+        LinhTinh item = this.getLinhTinh(id);
+        return item == null ? 0 : item.num;
+    }
+
+    private boolean hasLinhTinh(int id, int num) {
+        return this.getLinhTinhCount(id) >= num;
+    }
+
+    private boolean canCraftGoldFormula(GoldFormulaRecipe recipe, Equip template) {
+        return this.getLinhTinhCount(recipe.formulaId) > 0
+                && this.findOwnedEquip(template, true) != null
+                && this.glass().level >= template.level
+                && this.hasLinhTinh(MATERIAL_NHOM, 100)
+                && this.hasLinhTinh(MATERIAL_BAC, 100)
+                && this.hasLinhTinh(MATERIAL_VANG, 100)
+                && this.hasLinhTinh(recipe.gemId, 2);
+    }
+
+    private void writeFormulaMaterial(Message message, int materialId, int require) throws IOException {
+        LinhTinh item = LinhTinh.get(materialId);
+        message.writer().writeByte(materialId);
+        message.writer().writeUTF(item != null ? item.name : ("Nguyên liệu " + materialId));
+        message.writer().writeByte(require);
+        message.writer().writeByte(Math.min(255, this.getLinhTinhCount(materialId)));
+    }
+
+    private void sendFormulaInfo(String info) {
+        try {
+            Message message = new Message(-18);
+            message.writer().writeByte(0);
+            message.writer().writeUTF(info);
+            this.session.sendMessage(message);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void loadGoldFormula(byte formulaId) {
+        GoldFormulaRecipe recipe = this.getGoldFormulaRecipe(formulaId);
+        if (recipe == null) {
+            this.sendFormulaInfo(__("Công thức này chưa được hỗ trợ."));
+            return;
+        }
+        ArrayList<Equip> formulas = this.getGoldFormulaEquips(recipe);
+        if (formulas.isEmpty()) {
+            this.sendFormulaInfo(__("Không tìm thấy trang bị vàng phù hợp với công thức này."));
+            return;
+        }
+        try {
+            Message message = new Message(-18);
+            message.writer().writeByte(1);
+            message.writer().writeByte(formulaId);
+            message.writer().writeByte(formulas.size());
+            for (Equip template : formulas) {
+                message.writer().writeByte(template.id);
+                message.writer().writeUTF(template.name);
+                message.writer().writeByte(template.level);
+                message.writer().writeByte(template.glassID);
+                message.writer().writeByte(template.type);
+                message.writer().writeByte(4);
+                this.writeFormulaMaterial(message, MATERIAL_NHOM, 100);
+                this.writeFormulaMaterial(message, MATERIAL_BAC, 100);
+                this.writeFormulaMaterial(message, MATERIAL_VANG, 100);
+                this.writeFormulaMaterial(message, recipe.gemId, 2);
+                message.writer().writeByte(template.id);
+                message.writer().writeUTF(template.name);
+                message.writer().writeByte(template.level);
+                message.writer().writeBoolean(this.findOwnedEquip(template, true) != null);
+                message.writer().writeBoolean(this.canCraftGoldFormula(recipe, template));
+                message.writer().writeByte(2);
+                message.writer().writeUTF(__("Tất cả chỉ số +(15-20)"));
+                message.writer().writeUTF(__("Tất cả phần trăm +(8-10)%"));
+            }
+            this.session.sendMessage(message);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void craftGoldFormula(byte formulaId, byte formulaIndex) {
+        GoldFormulaRecipe recipe = this.getGoldFormulaRecipe(formulaId);
+        ArrayList<Equip> formulas = this.getGoldFormulaEquips(recipe);
+        if (recipe == null || formulaIndex < 0 || formulaIndex >= formulas.size()) {
+            this.sendFormulaInfo(__("Công thức không hợp lệ."));
+            return;
+        }
+        Equip template = formulas.get(formulaIndex);
+        Equip equip = this.findOwnedEquip(template, true);
+        if (this.getLinhTinhCount(recipe.formulaId) <= 0) {
+            this.sendFormulaInfo(__("Bạn chưa có công thức rèn đồ này."));
+            return;
+        }
+        if (equip == null) {
+            this.sendFormulaInfo(__("Bạn chưa có trang bị vàng chưa rèn để làm nguyên liệu."));
+            return;
+        }
+        if (this.glass().level < template.level) {
+            this.sendFormulaInfo(__("Cấp độ nhân vật chưa đủ để rèn trang bị này."));
+            return;
+        }
+        if (!this.hasLinhTinh(MATERIAL_NHOM, 100) || !this.hasLinhTinh(MATERIAL_BAC, 100)
+                || !this.hasLinhTinh(MATERIAL_VANG, 100) || !this.hasLinhTinh(recipe.gemId, 2)) {
+            this.sendFormulaInfo(__("Bạn chưa đủ nguyên liệu để rèn trang bị này."));
+            return;
+        }
+        this.addLinhTinh(MATERIAL_NHOM, -100);
+        this.addLinhTinh(MATERIAL_BAC, -100);
+        this.addLinhTinh(MATERIAL_VANG, -100);
+        this.addLinhTinh(recipe.gemId, -2);
+        byte ability = (byte) Util.nextInt(15, 21);
+        byte percen = (byte) Util.nextInt(8, 11);
+        for (int i = 0; i < equip.inv_ability.length; i++) {
+            equip.inv_ability[i] += ability;
+            equip.inv_percen[i] += percen;
+        }
+        equip.markForged();
+        this.glass().updateAll();
+        if (this.session != null) {
+            this.session.sessionHandler.updateEquip(equip);
+            this.session.sessionHandler.loadInfo();
+        }
+        this.sendFormulaInfo(String.format(__("Rèn thành công %s: tất cả chỉ số +%d và +%d%%."), equip.name, ability, percen));
     }
     public void renewalEquip(int dbKey) {
         Equip equip = this.session.user.getEquip(dbKey);

@@ -134,6 +134,17 @@ public class ControlHandler {
                     this.session.sessionHandler.loadRoomInfoName();
                 }
             }
+            case -18 -> {
+                if (this.session.user != null && this.session.user.roomWait == null) {
+                    byte formulaId = msg.reader().readByte();
+                    byte action = msg.reader().readByte();
+                    if (action == 1) {
+                        this.session.user.loadGoldFormula(formulaId);
+                    } else if (action == 2) {
+                        this.session.user.craftGoldFormula(formulaId, msg.reader().readByte());
+                    }
+                }
+            }
             case -14 -> {
                 if (this.session.user != null && this.session.user.roomWait == null) {
                     this.session.sessionHandler.topInfo();

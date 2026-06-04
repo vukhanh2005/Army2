@@ -186,6 +186,7 @@ public class EquipScreen extends TabScreen {
       this.getLastEquip();
       this.getDetail();
       TerrainMidlet.myInfo.getMyEquip(9);
+      this.syncEquippedItemsFromInventory();
       TerrainMidlet.myInfo.setAllEquipEffect();
       for(int i = 0; i < 5; ++i) {
          this.dbKeyChange[i] = -1;
@@ -197,6 +198,7 @@ public class EquipScreen extends TabScreen {
       }
       this.vLastE = this.myEquips;
       this.setCurrEquip();
+      this.syncEquippedItemsFromInventory();
       this.getBaseAttribute();
       this.seeNextAttribute();
    }
@@ -471,6 +473,42 @@ public class EquipScreen extends TabScreen {
          this.dbKeyChange[i] = this.lastDb[i];
       }
    }
+   public void syncEquippedItemsFromInventory() {
+      try {
+         PlayerInfo m = TerrainMidlet.myInfo;
+         if (m == null || m.myEquip == null) {
+            return;
+         }
+
+         for(int i = 0; i < 5; ++i) {
+            int dbKey = m.dbKey[i];
+            if (m.myEquip.equips[i] != null && m.myEquip.equips[i].dbKey > 0) {
+               dbKey = m.myEquip.equips[i].dbKey;
+            }
+            if (dbKey <= 0 || dbKey == 65535) {
+               continue;
+            }
+
+            Equip inv = this.getEquip(dbKey);
+            if (inv == null) {
+               inv = CCanvas.inventory.getEquip(dbKey);
+            }
+            if (inv == null || inv.isMaterial) {
+               continue;
+            }
+
+            if (m.myEquip.equips[inv.type] == null) {
+               m.myEquip.equips[inv.type] = PlayerEquip.getEquip(inv.glass, inv.type, inv.id);
+            }
+            m.myEquip.equips[inv.type].changeToEquip(inv);
+            m.equipID[m.gun][inv.type] = inv.id;
+            m.dbKey[inv.type] = inv.dbKey;
+         }
+         m.setAllEquipEffect();
+         this.getBaseAttribute();
+      } catch (Exception var5) {
+      }
+   }
    public void changeEquip() {
       PlayerInfo m = TerrainMidlet.myInfo;
       Equip sl = this.getEquipSelect();
@@ -613,9 +651,9 @@ public class EquipScreen extends TabScreen {
       for(j = 0; j < 5; ++j) {
          eq = info.myEquip.equips[j];
          if (eq != null) {
-            for(j = 0; j < 5; ++j) {
-               ability[j] += eq.inv_ability[j];
-               percen[j] += eq.inv_percen[j];
+            for(int k = 0; k < 5; ++k) {
+               ability[k] += eq.inv_ability[k];
+               percen[k] += eq.inv_percen[k];
             }
          }
       }

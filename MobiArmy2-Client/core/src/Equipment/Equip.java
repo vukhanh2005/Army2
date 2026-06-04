@@ -42,6 +42,7 @@ public class Equip {
     public boolean isSelect = false;
     public byte bullet;
     public boolean isMaterial = false;
+    public boolean isForged = false;
     public String strDetail;
     public mImage materialIcon;
     public boolean notPaint;
@@ -71,6 +72,10 @@ public class Equip {
         this.bullet = bullet;
     }
     public Equip() {
+    }
+    public void setLevel2WithFlags(int value) {
+        this.isForged = (value & 128) != 0;
+        this.level2 = value & 127;
     }
     public int[] getBaseAttribute() {
         int[] atts = new int[5];
@@ -189,6 +194,7 @@ public class Equip {
         this.bullet = e.bullet;
         this.frame = e.frame;
         this.addAbilityFromEquip(e);
+        this.isForged = e.isForged;
         this.dbKey = e.dbKey;
         this.level = e.level;
     }
@@ -332,6 +338,14 @@ public class Equip {
                 ++index;
             }
             g.drawRegion(EquipScreen.imgIconEQ[index], 0, offset, 16, 16, 0, X, Y, 0, isClip);
+            if (this.isForged) {
+                g.setColor(0);
+                g.fillRect(X + 9, Y, 7, 7, isClip);
+                g.setColor(16777215);
+                g.fillRect(X + 10, Y + 1, 5, 5, isClip);
+                g.setColor(16711680);
+                g.fillRect(X + 11, Y + 2, 3, 3, isClip);
+            }
         } else {
             if (this.materialIcon != null) {
                 g.drawImage(this.materialIcon, X + 8, Y + 8, 3, isClip);

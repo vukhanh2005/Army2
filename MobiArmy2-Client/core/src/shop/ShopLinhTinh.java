@@ -46,6 +46,8 @@ public class ShopLinhTinh extends TabScreen {
    public static boolean trans = false;
    static int numItemMua;
    static int tongTien;
+   private int holdAdjustDelay;
+   private int holdAdjustStep;
    public ShopLinhTinh() {
       this.W = CCanvas.width;
       this.myShop = new Vector();
@@ -309,6 +311,41 @@ public class ShopLinhTinh extends TabScreen {
    }
    public void update() {
       super.update();
+      if (this.isSelectNum) {
+         int delta = 0;
+         if (CCanvas.keyHold[4] || CCanvas.keyHold[8]) {
+            delta = -1;
+         } else if (CCanvas.keyHold[6] || CCanvas.keyHold[2]) {
+            delta = 1;
+         } else {
+            int xx = CCanvas.width / 2;
+            int yy = CCanvas.hieght / 2;
+            for (int i = 0; i < CCanvas.isPointerDown.length; i++) {
+               if (CCanvas.isPointerDown[i]) {
+                  if (CCanvas.pX[i] >= xx - 46 && CCanvas.pX[i] <= xx - 16 && CCanvas.pY[i] >= yy && CCanvas.pY[i] <= yy + 30) {
+                     delta = -1;
+                     break;
+                  }
+                  if (CCanvas.pX[i] >= xx + 24 && CCanvas.pX[i] <= xx + 64 && CCanvas.pY[i] >= yy && CCanvas.pY[i] <= yy + 30) {
+                     delta = 1;
+                     break;
+                  }
+               }
+            }
+         }
+         if (delta != 0) {
+            if (this.holdAdjustStep == delta && this.isHoldAdjustReady()) {
+               this.adjustBuyNum(delta);
+            } else if (this.holdAdjustStep != delta) {
+               this.holdAdjustStep = delta;
+               this.holdAdjustDelay = 0;
+            }
+         } else {
+            this.resetHoldAdjust();
+         }
+      } else {
+         this.resetHoldAdjust();
+      }
    }
    public void mainLoop() {
       super.mainLoop();
@@ -336,36 +373,41 @@ public class ShopLinhTinh extends TabScreen {
       this.getCommand();
       this.transText1.x = 0;
    }
+   private void adjustBuyNum(int delta) {
+      Equip e = this.getCurrEq();
+      if (e == null) {
+         return;
+      }
+      this.num += delta;
+      if (this.num < 0) {
+         this.num = 0;
+      }
+      if (this.num > 100) {
+         this.num = 100;
+      }
+      e.numSelected = this.num;
+      e.isSelect = this.num > 0;
+   }
+   private boolean isHoldAdjustReady() {
+      ++this.holdAdjustDelay;
+      int interval = this.holdAdjustDelay < 12 ? 5 : 2;
+      return this.holdAdjustDelay == 1 || this.holdAdjustDelay % interval == 0;
+   }
+   private void resetHoldAdjust() {
+      this.holdAdjustDelay = 0;
+      this.holdAdjustStep = 0;
+   }
    public void onPointerPressed(int x, int y2, int index) {
        super.onPointerPressed(x, y2, index);
         if (this.isSelectNum) {
             if (CCanvas.keyPressed[2] || CCanvas.keyPressed[4] || CCanvas.keyPressed[6] || CCanvas.keyPressed[8]) {
-                Equip e;
                 if (CCanvas.keyPressed[4] || CCanvas.keyPressed[8]) {
-                   e = this.getCurrEq();
-                   if (e != null) {
-                      --this.num;
-                      if (this.num <= 0) {
-                         e.isSelect = false;
-                         this.num = 0;
-                      }
-                      e.numSelected = this.num < 0 ? 0 : this.num;
-                   }
+                   this.adjustBuyNum(-1);
                 }else
                 if (CCanvas.keyPressed[6] || CCanvas.keyPressed[2]) {
-                   e = this.getCurrEq();
-                   if (e != null) {
-                      if (e.num > 5) {
-                         ++this.num;
-                      } else if (this.num > 100) {
-                         this.num = 100;
-                      } else {
-                         ++this.num;
-                      }
-                      e.numSelected = this.num > 100 ? 100 : this.num;
-                      e.isSelect = true;
-                   }
+                   this.adjustBuyNum(1);
                 }
+                this.resetHoldAdjust();
                 CScreen.clearKey();
             }
         } else if (CCanvas.keyPressed[2] || CCanvas.keyPressed[4] || CCanvas.keyPressed[6] || CCanvas.keyPressed[8]) {

@@ -45,13 +45,17 @@ public class PauseMenu {
    }
    public void onPointerRealeased(int xRealeased, int yRealeased, int index) {
       if (CCanvas.isPointer(this.menuX, this.menuY, this.menuW, this.menuH, index)) {
-         int aa = (yRealeased - this.menuY) / 30;
+         int dis = CCanvas.isTouch ? 30 : 24;
+         int aa = (yRealeased - this.menuY) / dis;
          if (aa >= 0 && aa < this.menuItems.size()) {
             if (this.menuSelectedItem != aa) {
                this.menuSelectedItem = aa;
             } else {
                this.isShow = false;
-               ((Command)this.menuItems.elementAt(this.menuSelectedItem)).action.perform();
+               Command command = (Command)this.menuItems.elementAt(this.menuSelectedItem);
+               if (command != null && command.action != null) {
+                  command.action.perform();
+               }
             }
          }
       }

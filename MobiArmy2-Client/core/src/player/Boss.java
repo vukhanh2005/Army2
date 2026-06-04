@@ -325,8 +325,10 @@ public class Boss extends CPlayer {
     }
     void paintBossHP(mGraphics g, int h) {
         if (this.state != 5 && this.hp > 0) {
+            int hpX = this.x - 15 + this.dxUFO;
+            int hpY = this.y + 5 - h + this.dyUFO;
             g.setColor(16777215);
-            g.fillRect(this.x - 15 + this.dxUFO, this.y + 5 - h + this.dyUFO, 25, 4, false);
+            g.fillRect(hpX, hpY, 25, 4, false);
             if (this.hpRectW > 16) {
                 g.setColor(65280);
             } else if (this.hpRectW > 8) {
@@ -337,9 +339,10 @@ public class Boss extends CPlayer {
             if (this.hpRectW > 25) {
                 this.hpRectW = 25;
             }
-            g.fillRect(this.x - 15 + this.dxUFO, this.y + 5 - h + this.dyUFO, this.hpRectW, 4, false);
+            g.fillRect(hpX, hpY, this.hpRectW, 4, false);
             g.setColor(0);
-            g.drawRect(this.x - 15 + this.dxUFO, this.y + 5 - h + this.dyUFO, 25, 4, false);
+            g.drawRect(hpX, hpY, 25, 4, false);
+            this.paintHpValue(g, hpX + 12, hpY - 9);
         }
     }
     public void paintGhost(mGraphics g, int type) {

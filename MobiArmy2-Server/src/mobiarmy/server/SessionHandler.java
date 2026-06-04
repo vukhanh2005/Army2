@@ -269,7 +269,7 @@ public class SessionHandler {
                 message.writer().writeByte(equip.date());
                 message.writer().writeByte(equip.slot());
                 message.writer().writeByte(equip.vip);
-                message.writer().writeByte(equip.level2);
+                message.writer().writeByte(equip.encodedLevel2());
             }
             for(int i = 0; i < this.session.user.glass().dbKey.length; i++) {
                 message.writer().writeInt(this.session.user.glass().dbKey[i]|0x10000);
@@ -495,7 +495,7 @@ public class SessionHandler {
             }
             message.writer().writeByte(equip.date());
             message.writer().writeByte(equip.vip);
-            message.writer().writeByte(equip.level2);
+            message.writer().writeByte(equip.encodedLevel2());
             this.session.sendMessage(message);
         } catch (IOException ex){}
     }
@@ -513,6 +513,7 @@ public class SessionHandler {
                 }
                 message.writer().writeByte(equip.slot());
                 message.writer().writeByte(equip.date());
+                message.writer().writeByte(equip.encodedLevel2());
             }
             this.session.sendMessage(message);
         } catch (IOException ex){}

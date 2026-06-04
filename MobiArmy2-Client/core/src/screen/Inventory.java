@@ -138,7 +138,9 @@ public class Inventory extends TabScreen {
       });
       this.cmdXacnhan = new Command(Language.use(), new IAction() {
          public void perform() {
-            Inventory.this.doCombine();
+            if (!Inventory.this.openSelectedFormula()) {
+               Inventory.this.doCombine();
+            }
          }
       });
       this.right = new Command(Language.back(), new IAction() {
@@ -309,9 +311,14 @@ public class Inventory extends TabScreen {
       Equip e = this.popupEquip;
       this.unSelectEquip();
       if (e.isMaterial) {
-         e.isSelect = true;
-         e.numSelected = 1;
-         this.doCombine();
+         if (e.strDetail != null && e.strDetail.startsWith(Language.fomula())) {
+            CCanvas.startOKDlg(Language.pleaseWait());
+            GameService.gI().getFomula((byte)e.id, (byte)1, (byte)-1);
+         } else {
+            e.isSelect = true;
+            e.numSelected = 1;
+            this.doCombine();
+         }
       } else {
          CCanvas.startOKDlg("Hãy vào màn Trang bị để mặc trang bị này.");
       }
@@ -377,6 +384,15 @@ public class Inventory extends TabScreen {
          }
          this.dem = 0;
       }
+   }
+   private boolean openSelectedFormula() {
+      Equip e = this.getEquipSelect();
+      if (e != null && e.isMaterial && e.strDetail != null && e.strDetail.startsWith(Language.fomula())) {
+         CCanvas.startOKDlg(Language.pleaseWait());
+         GameService.gI().getFomula((byte)e.id, (byte)1, (byte)-1);
+         return true;
+      }
+      return false;
    }
    public void doCombineSelect() {
       this.size = EquipScreen.inventory.size();
@@ -756,8 +772,9 @@ public class Inventory extends TabScreen {
             if (cmtoYI < 0) {
                 cmtoYI = 0;
             }
+            this.getDetail();
             CScreen.clearKey();
-       }
+      }
    }
    public void handleItemPopupKeys() {
       if (CCanvas.keyPressed[4] || CCanvas.keyPressed[2]) {

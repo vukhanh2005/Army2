@@ -1326,6 +1326,7 @@ public class MessageHandler implements IMessageHandler {
                             byte vip = msg.reader().readByte();
                             int level2 = msg.reader().readUnsignedByte();
                             Equip equip = PlayerEquip.getEquip(gl, tp, idb);
+                            equip.setLevel2WithFlags(level2);
                             equip.getInvAtribute(ab);
                             Equip tam = null;
                             if (equip != null) {
@@ -1341,7 +1342,8 @@ public class MessageHandler implements IMessageHandler {
                                 tam.dx = equip.dx;
                                 tam.dy = equip.dy;
                                 tam.date = dte;
-                                tam.name = String.valueOf(n) + (level2 != 0 ? " " + level2 : "");
+                                tam.setLevel2WithFlags(level2);
+                                tam.name = String.valueOf(n) + (tam.level2 != 0 ? " " + tam.level2 : "");
                                 tam.dbKey = dbKey;
                                 tam.level = equip.level;
                                 tam.vip = vip;
@@ -1411,7 +1413,7 @@ public class MessageHandler implements IMessageHandler {
                             vip[i] = msg.reader().readByte();
                             level2[i] = msg.reader().readUnsignedByte();
                             Equip e = PlayerEquip.createEquip(glassI[i], typeI[i], idI[i]);
-                            e.level2 = level2[i];
+                            e.setLevel2WithFlags(level2[i]);
                             e.removeAbility();
                             e.getInvAtribute(currAb);
                             Equip tam = new Equip();
@@ -1431,7 +1433,8 @@ public class MessageHandler implements IMessageHandler {
                                 tam.type = e.type;
                                 tam.glass = glassI[i];
                                 tam.date = e.date;
-                                tam.name = String.valueOf(e.name) + (e.level2 != 0 ? " " + e.level2 : "");
+                                tam.setLevel2WithFlags(level2[i]);
+                                tam.name = String.valueOf(e.name) + (tam.level2 != 0 ? " " + tam.level2 : "");
                                 tam.dbKey = dbKey[i];
                                 tam.level = e.level;
                                 tam.slot = slot[i];
@@ -1453,6 +1456,7 @@ public class MessageHandler implements IMessageHandler {
                             ++i;
                         }
                         CCanvas.equipScreen.getEquip(inventory);
+                        CCanvas.equipScreen.syncEquippedItemsFromInventory();
                         CCanvas.endDlg();
                         break;
                     }
@@ -1461,10 +1465,15 @@ public class MessageHandler implements IMessageHandler {
                         if (change == 0) {
                             CCanvas.endDlg();
                             CCanvas.equipScreen.resetEquip();
+                            TerrainMidlet.myInfo.setAllEquipEffect();
+                            CCanvas.equipScreen.getBaseAttribute();
                             CCanvas.menuScr.show();
                         }
                         if (change == 1) {
+                            CCanvas.equipScreen.syncEquippedItemsFromInventory();
                             CCanvas.equipScreen.getLastEquip();
+                            TerrainMidlet.myInfo.setAllEquipEffect();
+                            CCanvas.equipScreen.getBaseAttribute();
                             CCanvas.menuScr.show();
                             CCanvas.endDlg();
                         }
@@ -1932,26 +1941,29 @@ public class MessageHandler implements IMessageHandler {
                                 }
                                 byte slotUpdate = msg.reader().readByte();
                                 byte dateUpdate = msg.reader().readByte();
-                                Equip tam = null;
-                                if (CCanvas.curScr == CCanvas.inventory) {
-                                    tam = CCanvas.inventory.getEquip(IdbKey);
-                                }
-                                if (CCanvas.curScr == CCanvas.equipScreen) {
+                                int level2Update = msg.reader().readUnsignedByte();
+                                Equip tam = CCanvas.inventory.getEquip(IdbKey);
+                                if (tam == null) {
                                     tam = CCanvas.equipScreen.getEquip(IdbKey);
                                 }
-                                tam.getInvAtribute(IAb);
-                                tam.slot = slotUpdate;
-                                tam.date = dateUpdate;
-                                if (CCanvas.curScr == CCanvas.inventory) {
-                                    CCanvas.inventory.getDetail();
+                                if (tam != null) {
+                                    tam.getInvAtribute(IAb);
+                                    tam.setLevel2WithFlags(level2Update);
+                                    tam.slot = slotUpdate;
+                                    tam.date = dateUpdate;
+                                    if (CCanvas.curScr == CCanvas.inventory) {
+                                        CCanvas.inventory.getDetail();
+                                    }
+                                    if (CCanvas.curScr == CCanvas.equipScreen) {
+                                        CCanvas.equipScreen.getDetail();
+                                    }
+                                    if (TerrainMidlet.myInfo.myEquip.equips[tam.type] != null && TerrainMidlet.myInfo.myEquip.equips[tam.type].dbKey == tam.dbKey) {
+                                        TerrainMidlet.myInfo.myEquip.equips[tam.type].changeToEquip(tam);
+                                        TerrainMidlet.myInfo.setAllEquipEffect();
+                                        TerrainMidlet.myInfo.clearAttAddPoint();
+                                    }
                                 }
-                                if (CCanvas.curScr == CCanvas.equipScreen) {
-                                    CCanvas.equipScreen.getDetail();
-                                }
-                                if (TerrainMidlet.myInfo.myEquip.equips[tam.type] != null && TerrainMidlet.myInfo.myEquip.equips[tam.type].dbKey == tam.dbKey) {
-                                    TerrainMidlet.myInfo.myEquip.equips[tam.type].changeToEquip(tam);
-                                    TerrainMidlet.myInfo.clearAttAddPoint();
-                                }
+                                CCanvas.equipScreen.syncEquippedItemsFromInventory();
                                 CCanvas.equipScreen.getBaseAttribute();
                             } else if (IAction2 == 1) {
                                 IdMaterial = msg.reader().readByte();
@@ -2204,7 +2216,9 @@ public class MessageHandler implements IMessageHandler {
                             CRes.out("fInfo= " + fInfo);
                             CCanvas.startOKDlg(fInfo, new IAction() {
                                 public void perform() {
-                                    CCanvas.fomulaScreen.lastScr.show();
+                                    if (CCanvas.fomulaScreen.lastScr != null) {
+                                        CCanvas.fomulaScreen.lastScr.show();
+                                    }
                                 }
                             });
                         }
@@ -2247,7 +2261,7 @@ public class MessageHandler implements IMessageHandler {
                                     int materialRequire = msg.reader().readUnsignedByte();
                                     int materialHave = msg.reader().readUnsignedByte();
                                     fomula.numMaterial[j] = String.valueOf(materialHave) + "/" + materialRequire;
-                                    CRes.out("Image id= " + materialIcon + " numMaterial= " + fomula.numMaterial[i]);
+                                    CRes.out("Image id= " + materialIcon + " numMaterial= " + fomula.numMaterial[j]);
                                     ++j;
                                 }
                                 byte idEquipRequire = msg.reader().readByte();

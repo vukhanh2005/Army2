@@ -30,6 +30,7 @@ import model.FrameImage;
 import model.IAction;
 import model.IAction2;
 import model.Language;
+import model.PauseMenu;
 import model.TField;
 import model.TimeBomb;
 import network.Command;
@@ -793,6 +794,12 @@ public class GameScr extends CScreen {
     }
     public void doShowPauseMenu() {
         this.isShowPausemenu = true;
+        if (CCanvas.pausemenu == null) {
+            CCanvas.pausemenu = new PauseMenu();
+        }
+        CPlayer myPlayer = PM.getMyPlayer();
+        CPlayer curPlayer = PM.getCurPlayer();
+        boolean isYourTurn = pm != null && pm.isYourTurn() && myPlayer != null;
         Vector<Command> menu = new Vector();
         menu.addElement(new Command(Language.CONTINUE(), new IAction() {
             public void perform() {
@@ -812,23 +819,29 @@ public class GameScr extends CScreen {
                 GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
             }
         }));
-        if (pm.isYourTurn() && PM.getCurPlayer().isAngry && !PM.getCurPlayer().isUsedItem) {
+        if (isYourTurn && curPlayer != null && curPlayer.isAngry && !curPlayer.isUsedItem) {
             menu.addElement(new Command(Language.SPECIAL(), new IAction() {
                 public void perform() {
+                    CPlayer player = PM.getCurPlayer();
+                    if (player == null) {
+                        GameScr.this.isShowPausemenu = false;
+                        GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
+                        return;
+                    }
                     GameService.gI().useItem((byte) 100);
-                    PM.getCurPlayer().isUsedItem = true;
-                    PM.getCurPlayer().itemUsed = 100;
-                    PM.getCurPlayer().angryX = 0;
-                    PM.getCurPlayer().currAngry = 0;
-                    PM.getCurPlayer().is2TurnItem = true;
-                    PM.getCurPlayer().isSecondPower = false;
-                    PM.getCurPlayer().force = 0;
-                    PM.getCurPlayer().force_2 = 0;
-                    PM.getCurPlayer().forceSelectedBySlider = GameScr.aimAssistEnabled;
+                    player.isUsedItem = true;
+                    player.itemUsed = 100;
+                    player.angryX = 0;
+                    player.currAngry = 0;
+                    player.is2TurnItem = true;
+                    player.isSecondPower = false;
+                    player.force = 0;
+                    player.force_2 = 0;
+                    player.forceSelectedBySlider = GameScr.aimAssistEnabled;
                     CPlayer.isStopFire = false;
                     CPlayer.isShooting = false;
-                    PM.getCurPlayer().setState((byte) 0);
-                    PM.getCurPlayer().checkAngleForSprite();
+                    player.setState((byte) 0);
+                    player.checkAngleForSprite();
                     GameScr.this.isShowPausemenu = false;
                     GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                 }
@@ -841,7 +854,7 @@ public class GameScr extends CScreen {
                 GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
             }
         }));
-        if (pm.isYourTurn() && !trainingMode && !BM.active && PM.getMyPlayer().active && this.nBoLuot > 0) {
+        if (isYourTurn && !trainingMode && !BM.active && myPlayer.active && this.nBoLuot > 0) {
             menu.addElement(new Command(Language.SKIP(), new IAction() {
                 public void perform() {
                     GameScr.time.skipTurn();
@@ -859,7 +872,7 @@ public class GameScr extends CScreen {
                     GameScr.trainingMode = false;
                     GameScr.this.timeShowPauseMenu = mSystem.currentTimeMillis() + 300L;
                     CScreen.isSetClip = true;
-                } else if (PM.p[GameScr.myIndex].getState() == 5) {
+                } else if (PM.p != null && GameScr.myIndex >= 0 && GameScr.myIndex < PM.p.length && PM.p[GameScr.myIndex] != null && PM.p[GameScr.myIndex].getState() == 5) {
                     CCanvas.startYesNoDlg(Language.youWillLose(), new IAction() {
                         public void perform() {
                             CCanvas.endDlg();

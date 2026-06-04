@@ -29,6 +29,15 @@ public class Equip {
     public int dbKey;
     public boolean isUse;
     public long renewalDate;
+    public boolean isForged() {
+        return (this.level2 & 0x80) != 0;
+    }
+    public void markForged() {
+        this.level2 = (byte) (this.level2 | 0x80);
+    }
+    public int encodedLevel2() {
+        return this.level2 & 0xFF;
+    }
     public Equip() {
         this.slot = new short[]{-1, -1, -1};
     }
